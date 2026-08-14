@@ -1,0 +1,13 @@
+# Definitions and examples are human-owned and added during benchmark design.
+version: 0
+intents: []
+languages:
+  - urdu_script
+  - roman_urdu
+  - english
+  - code_switched
+severities:
+  - financial_loss
+  - service_disruption
+  - friction
+  - informational

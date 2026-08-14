@@ -1,0 +1,10 @@
+cff-version: 1.2.0
+message: "If you use UrduCX-Bench, please cite this repository."
+title: "UrduCX-Bench: Customer-Service Evaluation for Urdu and Roman Urdu"
+type: software
+authors:
+  - name: "UrduCX-Bench Contributors"
+repository-code: "https://github.com/hassan-product/UrduCX-Bench"
+license: Apache-2.0
+version: 0.0.0
+date-released: 2026-08-14

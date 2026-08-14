@@ -1,0 +1,5 @@
+python-dotenv==1.2.2
+PyYAML==6.0.3
+pre-commit==4.6.2
+pytest==9.1.1
+ruff==0.16.3
