@@ -20,7 +20,7 @@ DEFAULT_OUTPUT = Path("data/raw/sample_preview/index.html")
 def load_reviews(input_dir: Path) -> list[dict[str, Any]]:
     """Load page files and reject records outside the privacy-safe raw schema."""
     reviews = []
-    for page_path in sorted(input_dir.glob("*/page_*.jsonl")):
+    for page_path in sorted(input_dir.rglob("page_*.jsonl")):
         for line_number, line in enumerate(
             page_path.read_text(encoding="utf-8").splitlines(), start=1
         ):
@@ -136,6 +136,7 @@ def render_preview(reviews: list[dict[str, Any]]) -> str:
       line-height: 1.65;
     }}
     .app {{ width: 190px; overflow-wrap: anywhere; }}
+    .platform {{ width: 120px; }}
     .date {{ width: 170px; color: var(--muted); }}
     .version, .thumbs {{ width: 90px; color: var(--muted); }}
     .empty {{ padding: 40px; color: var(--muted); text-align: center; }}
@@ -176,7 +177,8 @@ def render_preview(reviews: list[dict[str, Any]]) -> str:
         <thead><tr>
           <th class="rating">Rating</th>
           <th class="review">Review text</th>
-          <th class="app">App ID</th>
+          <th class="platform">Platform</th>
+          <th class="app">Product / App ID</th>
           <th class="date">Timestamp</th>
           <th class="version">Version</th>
           <th class="thumbs">Helpful</th>
@@ -191,7 +193,9 @@ def render_preview(reviews: list[dict[str, Any]]) -> str:
     const body = document.querySelector("#reviews");
     const empty = document.querySelector("#empty");
     const visibleCount = document.querySelector("#visible-count");
-    document.querySelector("#app-count").textContent = new Set(reviews.map(r => r.app_id)).size;
+    document.querySelector("#app-count").textContent = new Set(
+      reviews.map(r => `${{r.platform}}/${{r.platform_app_id}}`)
+    ).size;
 
     function cell(className, value) {{
       const element = document.createElement("td");
@@ -208,10 +212,11 @@ def render_preview(reviews: list[dict[str, Any]]) -> str:
         row.append(
           cell("rating", `${{review.rating}} ★`),
           cell("review", review.text),
-          cell("app", review.app_id),
+          cell("platform", review.platform.replaceAll("_", " ")),
+          cell("app", `${{review.product_id}}\n${{review.platform_app_id}}`),
           cell("date", review.timestamp),
           cell("version", review.app_version),
-          cell("thumbs", review.thumbs_up_count),
+          cell("thumbs", review.helpful_count),
         );
         return row;
       }}));

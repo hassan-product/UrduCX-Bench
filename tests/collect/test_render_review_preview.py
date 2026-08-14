@@ -10,12 +10,14 @@ from src.collect.render_review_preview import load_reviews, render_preview
 def review_record() -> dict[str, object]:
     return {
         "review_id": "review-1",
-        "app_id": "com.example.app",
+        "platform": "google_play",
+        "platform_app_id": "com.example.app",
+        "product_id": "example",
         "text": "Balance <script>alert(1)</script> kat gaya",
         "rating": 1,
         "timestamp": "2026-08-14T10:30:00",
         "app_version": "5.2.0",
-        "thumbs_up_count": 7,
+        "helpful_count": 7,
     }
 
 

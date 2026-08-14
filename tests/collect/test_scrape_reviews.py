@@ -47,10 +47,12 @@ def test_serialize_review_keeps_only_allowed_fields() -> None:
         "thumbsUpCount": 7,
     }
 
-    result = serialize_review(raw_review, "com.example.app")
+    result = serialize_review(raw_review, "com.example.app", "example")
 
     assert tuple(result) == REVIEW_FIELDS
     assert result["timestamp"] == "2026-08-14T10:30:00"
+    assert result["platform"] == "google_play"
+    assert result["product_id"] == "example"
     assert "userName" not in result
     assert "userImage" not in result
 

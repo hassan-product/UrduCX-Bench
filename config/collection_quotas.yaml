@@ -1,0 +1,24 @@
+# Human-confirmed collection quotas — 2026-08-15
+# Apple collection is already complete (5,483 reviews, all available).
+# Google quotas are the maximum reviews to collect per listing.
+# Low-volume products are capped at their full store-reported supply.
+target_total_google: 100000
+target_combined: 107500  # google target + 5483 apple already collected
+google_quotas:
+  com.jazz.jazzworld: 10000       # SIMOSA — 311k available
+  com.zong.customercare: 10000    # My Zong — 223k available
+  com.telenor.pakistan.mytelenor: 10000  # My Telenor — 265k available
+  com.techlogix.mobilinkcustomer: 10000  # JazzCash — 266k available
+  pk.com.telenor.phoenix: 12000   # Easypaisa — 533k available, largest supply
+  com.ufoneselfcare: 8000         # UPTCL / Ufone — 115k available
+  com.spbtv.mobilinktv: 6000      # Tamasha — 58k available
+  com.sadapay.app: 6000           # SadaPay — 52k available
+  com.nayapay.app: 6000           # NayaPay — 25k available
+  com.wallet.zindigi: 6000        # Zindigi — 15k available
+  pk.upaisa.com: 5000             # UPaisa — 15k available
+  com.ibm.jazzcashmerchant: 5000  # JazzCash Business — 13k available
+  com.jazz.rox: 4000              # ROX — 6.4k available
+  com.retailerapp.mobilink: 2000  # JazzCash Retailer — ~2k available, collect all
+  com.mobilinkbank: 1229          # DOST — full supply, store-reported ~1229
+  com.fikrfree.android: 590       # FikrFree — full supply, store-reported ~590
+  com.jazz.businessworld: 436     # Jazz Business World — full supply, ~436

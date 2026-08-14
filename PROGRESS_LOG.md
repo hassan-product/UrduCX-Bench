@@ -82,8 +82,31 @@ continues locally on macOS in a Python 3.13 virtual environment.
 - Collected one local 20-review SIMOSA sample to verify the live API and browser preview.
   The sample, checkpoint, and generated HTML remain under ignored `data/raw/` paths.
 - Added focused collection tests. Full repository validation passes with 12 tests.
-- Stopped before the full 40,000–60,000 review collection run, pending human approval of
-  the scraper sample as required by the one-job-at-a-time workflow.
+- Added a canonical Google Play and Apple App Store source registry covering 11 core
+  products and 6 adjacent products. The 11 core products each have verified listings on
+  both platforms; JazzCash Retailer is the only Google-only adjacent product.
+- Added a local registry approval page with platform, tier, vertical, brand, and status
+  filters plus direct store links. New listings remain unconfirmed pending human review.
+- Human reviewed and approved all 17 products and all 33 available store listings for
+  collection. This includes all 11 core and 6 adjacent products; JazzCash Retailer is
+  Google-only because no Apple Pakistan listing was found.
+- Added a resumable Apple Pakistan collector using the shared nine-field platform-aware
+  schema and a pinned CA bundle. Apple public RSS access is capped at ten 50-review pages
+  per listing.
+- Ran a bounded cross-platform availability census: collected all 5,483 publicly
+  accessible Apple reviews and one recent 200-review Google page for each of 17 listings
+  (3,400 Google reviews). The 8,883 observed records contain zero duplicate review IDs.
+- Google reports 1,906,988 written reviews across the 17 listings. Nine Apple listings
+  reached the 500-review public ceiling; lower-volume Apple listings exposed 11–469.
+- The census falsified uniform quota floors: DOST has about 1,241 combined accessible/
+  reported reviews, FikrFree about 610, and Jazz Business World about 447. These products
+  must use all available reviews or documented lower quotas rather than synthetic balance.
+- Added a local availability report with platform/tier filters, store totals, observed
+  date windows, and rating distributions.
+- Human confirmed Google quota at 100,000 reviews. Per-product caps recorded in
+  `config/collection_quotas.yaml`; high-volume products capped at 6,000–12,000 and
+  low-volume products collect their full available supply. Combined target ~107,500.
+  Census UI redesigned to match the source registry style.
 
 ---
 
@@ -106,8 +129,9 @@ continues locally on macOS in a Python 3.13 virtual environment.
    brief explicitly says "the human owns all judgment decisions"). Phase 0 intentionally
    does not pre-populate these with invented values.
 5. **Phase-gate discipline.** Per the brief's working rule #2, each phase stops and
-   reports against its acceptance criteria; the next phase does not start without human
-   confirmation. Phase 1 has **not** been started yet — only planned.
+  reports against its acceptance criteria; the next phase does not start without human
+  confirmation. Phase 1 is in progress and uses an additional one-job-at-a-time human
+  approval gate before collection advances.
 
 ---
 
@@ -150,20 +174,23 @@ code that can fail (scraping errors, rate-limit handling, PII-scrubber edge case
 
 ## 6. Work pending / next steps
 
-**Immediate next action: continue Phase 1 only after human approval of the local scraper
-sample.** The remaining build order is:
+**Immediate next action: human reviews the availability census and confirms final product
+quotas before full Google collection.** The remaining build order is:
 
-1. Run full collection, targeting 40k–60k reviews across at least four confirmed apps
-  with at least 24 months of coverage.
-2. Stop and present the collection output locally for human review.
-3. Add and run `src/collect/validate_raw.py` for coverage and quality reporting.
-4. Commit code only; raw data never leaves the local machine or enters git.
+1. Set evidence-based per-product quotas, using all available reviews for low-volume
+  products and caps for high-volume products. The expanded-scope working proposal is
+  60,000 minimum, 75,000 target, and 100,000 maximum.
+2. Run full Google collection against the approved quotas. Apple accessible collection is
+  already complete at 5,483 reviews.
+3. Stop and present the collection output locally for human review.
+4. Add and run `src/collect/validate_raw.py` for coverage and quality reporting.
+5. Commit code only; raw data never leaves the local machine or enters git.
 - **Acceptance target for Phase 1:** ≥40,000 reviews, ≥4 apps, ≥24 months span,
   validation report printed, no PII fields in stored schema.
 
 **Open questions still needing the human's decision (from `PROJECT_CONTEXT.md` Section 17):**
 1. Accept the 24-intent taxonomy as-is, or revise after reading a 200-review sample?
-2. App scope resolved for Phase 1: SIMOSA, JazzCash, Easypaisa, Zong, and Ufone.
+2. App scope approved: 11 core products, 6 adjacent products, and 33 available listings.
 3. Publish both dev/test splits, or hold out test? (brief recommends publishing both)
 4. Final model roster for the leaderboard.
 5. Single-annotator gold set acceptable for v1? (brief recommends yes, documented in

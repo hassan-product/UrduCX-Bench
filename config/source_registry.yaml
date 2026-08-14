@@ -1,0 +1,352 @@
+metadata_verified_at: '2026-08-15'
+products:
+- product_id: simosa
+  display_name: SIMOSA
+  brand_group: Jazz
+  vertical: telecom_self_care
+  audience: consumer
+  inclusion_tier: core
+  listings:
+  - platform: google_play
+    platform_app_id: com.jazz.jazzworld
+    bundle_id: com.jazz.jazzworld
+    store_title: SIMOSA - Jazz World
+    developer: Jazz Digital Pakistan
+    store_url: https://play.google.com/store/apps/details?id=com.jazz.jazzworld&hl=en&gl=pk
+    confirmed: true
+  - platform: apple_app_store
+    platform_app_id: '1441912305'
+    bundle_id: com.jazz.jazzworld
+    store_title: SIMOSA – Jazz World
+    developer: PAKISTAN MOBILE COMMUNICATIONS LTD
+    store_url: https://apps.apple.com/pk/app/simosa-jazz-world/id1441912305
+    confirmed: true
+- product_id: my_zong
+  display_name: My Zong
+  brand_group: Zong
+  vertical: telecom_self_care
+  audience: consumer
+  inclusion_tier: core
+  listings:
+  - platform: google_play
+    platform_app_id: com.zong.customercare
+    bundle_id: com.zong.customercare
+    store_title: My Zong
+    developer: CMPak - Zong
+    store_url: https://play.google.com/store/apps/details?id=com.zong.customercare&hl=en&gl=pk
+    confirmed: true
+  - platform: apple_app_store
+    platform_app_id: '1141387383'
+    bundle_id: com.CMPak.My-Zong
+    store_title: My-Zong
+    developer: CMPAK LIMITED
+    store_url: https://apps.apple.com/pk/app/my-zong/id1141387383
+    confirmed: true
+- product_id: uptcl
+  display_name: UPTCL / Ufone
+  brand_group: PTCL / Ufone
+  vertical: telecom_self_care
+  audience: consumer
+  inclusion_tier: core
+  listings:
+  - platform: google_play
+    platform_app_id: com.ufoneselfcare
+    bundle_id: com.ufoneselfcare
+    store_title: UPTCL– App Up Your Life!
+    developer: Pak Telecom Mobile Limited
+    store_url: https://play.google.com/store/apps/details?id=com.ufoneselfcare&hl=en&gl=pk
+    confirmed: true
+  - platform: apple_app_store
+    platform_app_id: '1189813122'
+    bundle_id: com.ufone.selfcare
+    store_title: UPTCL- App Up Your Life!
+    developer: Pak Telecom Mobile Limited
+    store_url: https://apps.apple.com/pk/app/uptcl-app-up-your-life/id1189813122
+    confirmed: true
+- product_id: my_telenor
+  display_name: My Telenor
+  brand_group: Telenor
+  vertical: telecom_self_care
+  audience: consumer
+  inclusion_tier: core
+  listings:
+  - platform: google_play
+    platform_app_id: com.telenor.pakistan.mytelenor
+    bundle_id: com.telenor.pakistan.mytelenor
+    store_title: My Telenor
+    developer: Telenor-Pakistan
+    store_url: https://play.google.com/store/apps/details?id=com.telenor.pakistan.mytelenor&hl=en&gl=pk
+    confirmed: true
+  - platform: apple_app_store
+    platform_app_id: '1087721779'
+    bundle_id: com.telenor.pakistan.mytelenor
+    store_title: My Telenor
+    developer: Telenor Pakistan (Pvt.) Ltd.
+    store_url: https://apps.apple.com/pk/app/my-telenor/id1087721779
+    confirmed: true
+- product_id: jazzcash
+  display_name: JazzCash
+  brand_group: Jazz
+  vertical: consumer_wallet
+  audience: consumer
+  inclusion_tier: core
+  listings:
+  - platform: google_play
+    platform_app_id: com.techlogix.mobilinkcustomer
+    bundle_id: com.techlogix.mobilinkcustomer
+    store_title: JazzCash - Your Mobile Account
+    developer: JazzCash
+    store_url: https://play.google.com/store/apps/details?id=com.techlogix.mobilinkcustomer&hl=en&gl=pk
+    confirmed: true
+  - platform: apple_app_store
+    platform_app_id: '1224617688'
+    bundle_id: com.mobilink.jazzcash
+    store_title: JazzCash- Your Mobile Account
+    developer: PAKISTAN MOBILE COMMUNICATIONS LTD
+    store_url: https://apps.apple.com/pk/app/jazzcash-your-mobile-account/id1224617688
+    confirmed: true
+- product_id: easypaisa
+  display_name: Easypaisa
+  brand_group: Easypaisa
+  vertical: consumer_wallet
+  audience: consumer
+  inclusion_tier: core
+  listings:
+  - platform: google_play
+    platform_app_id: pk.com.telenor.phoenix
+    bundle_id: pk.com.telenor.phoenix
+    store_title: easypaisa – a digital bank
+    developer: Easypaisa Bank Limited
+    store_url: https://play.google.com/store/apps/details?id=pk.com.telenor.phoenix&hl=en&gl=pk
+    confirmed: true
+  - platform: apple_app_store
+    platform_app_id: '1227725092'
+    bundle_id: com.telenor.easypaisa
+    store_title: easypaisa – a digital bank
+    developer: Easypaisa bank limited
+    store_url: https://apps.apple.com/pk/app/easypaisa-a-digital-bank/id1227725092
+    confirmed: true
+- product_id: upaisa
+  display_name: UPaisa
+  brand_group: PTCL / Ufone
+  vertical: consumer_wallet
+  audience: consumer
+  inclusion_tier: core
+  listings:
+  - platform: google_play
+    platform_app_id: pk.upaisa.com
+    bundle_id: pk.upaisa.com
+    store_title: UPaisa – Digital Wallet
+    developer: UPaisa
+    store_url: https://play.google.com/store/apps/details?id=pk.upaisa.com&hl=en&gl=pk
+    confirmed: true
+  - platform: apple_app_store
+    platform_app_id: '1536734651'
+    bundle_id: upaisa.com.pk
+    store_title: UPaisa
+    developer: Pak Telecom Mobile Limited
+    store_url: https://apps.apple.com/pk/app/upaisa/id1536734651
+    confirmed: true
+- product_id: dost
+  display_name: DOST / Mobilink Bank
+  brand_group: Mobilink Microfinance Bank
+  vertical: digital_banking
+  audience: consumer
+  inclusion_tier: core
+  listings:
+  - platform: google_play
+    platform_app_id: com.mobilinkbank
+    bundle_id: com.mobilinkbank
+    store_title: DOST – Powered by MMBL
+    developer: Mobilink Microfinance Bank Limited
+    store_url: https://play.google.com/store/apps/details?id=com.mobilinkbank&hl=en&gl=pk
+    confirmed: true
+  - platform: apple_app_store
+    platform_app_id: '1196694532'
+    bundle_id: com.mobilinkbank
+    store_title: DOST - MMBL
+    developer: MOBILINK MICRO FINANCE BANK LTD
+    store_url: https://apps.apple.com/pk/app/dost-mmbl/id1196694532
+    confirmed: true
+- product_id: sadapay
+  display_name: SadaPay
+  brand_group: SadaPay
+  vertical: digital_banking
+  audience: consumer
+  inclusion_tier: core
+  listings:
+  - platform: google_play
+    platform_app_id: com.sadapay.app
+    bundle_id: com.sadapay.app
+    store_title: 'SadaPay: Money made simple'
+    developer: SadaPay
+    store_url: https://play.google.com/store/apps/details?id=com.sadapay.app&hl=en&gl=pk
+    confirmed: true
+  - platform: apple_app_store
+    platform_app_id: '1543848524'
+    bundle_id: com.sadapay.app
+    store_title: 'SadaPay: Money made simple'
+    developer: Sada Tech Corp
+    store_url: https://apps.apple.com/pk/app/sadapay-money-made-simple/id1543848524
+    confirmed: true
+- product_id: nayapay
+  display_name: NayaPay
+  brand_group: NayaPay
+  vertical: digital_banking
+  audience: consumer
+  inclusion_tier: core
+  listings:
+  - platform: google_play
+    platform_app_id: com.nayapay.app
+    bundle_id: com.nayapay.app
+    store_title: NayaPay
+    developer: NayaPay
+    store_url: https://play.google.com/store/apps/details?id=com.nayapay.app&hl=en&gl=pk
+    confirmed: true
+  - platform: apple_app_store
+    platform_app_id: '1621286305'
+    bundle_id: com.nayapay.NayaPayApp
+    store_title: NayaPay
+    developer: NAYAPAY (PVT.) LIMITED
+    store_url: https://apps.apple.com/pk/app/nayapay/id1621286305
+    confirmed: true
+- product_id: zindigi
+  display_name: Zindigi
+  brand_group: JS Bank
+  vertical: digital_banking
+  audience: consumer
+  inclusion_tier: core
+  listings:
+  - platform: google_play
+    platform_app_id: com.wallet.zindigi
+    bundle_id: com.wallet.zindigi
+    store_title: Zindigi - All in One Finance
+    developer: JS Bank Limited
+    store_url: https://play.google.com/store/apps/details?id=com.wallet.zindigi&hl=en&gl=pk
+    confirmed: true
+  - platform: apple_app_store
+    platform_app_id: '1592606621'
+    bundle_id: com.wallet.zindigi
+    store_title: Zindigi - All in One Finance
+    developer: JS Bank Limited
+    store_url: https://apps.apple.com/pk/app/zindigi-all-in-one-finance/id1592606621
+    confirmed: true
+- product_id: rox
+  display_name: ROX
+  brand_group: Jazz
+  vertical: youth_telecom
+  audience: consumer
+  inclusion_tier: adjacent
+  listings:
+  - platform: google_play
+    platform_app_id: com.jazz.rox
+    bundle_id: com.jazz.rox
+    store_title: ROX
+    developer: Jazz Digital Pakistan
+    store_url: https://play.google.com/store/apps/details?id=com.jazz.rox&hl=en&gl=pk
+    confirmed: true
+  - platform: apple_app_store
+    platform_app_id: '6469692120'
+    bundle_id: com.roxlife
+    store_title: ROX- Real Online Experience
+    developer: PAKISTAN MOBILE COMMUNICATIONS LTD
+    store_url: https://apps.apple.com/pk/app/rox-real-online-experience/id6469692120
+    confirmed: true
+- product_id: jazz_business_world
+  display_name: Jazz Business World
+  brand_group: Jazz
+  vertical: enterprise_telecom
+  audience: enterprise
+  inclusion_tier: adjacent
+  listings:
+  - platform: google_play
+    platform_app_id: com.jazz.businessworld
+    bundle_id: com.jazz.businessworld
+    store_title: Jazz Business World
+    developer: Jazz Digital Pakistan
+    store_url: https://play.google.com/store/apps/details?id=com.jazz.businessworld&hl=en&gl=pk
+    confirmed: true
+  - platform: apple_app_store
+    platform_app_id: '6467874447'
+    bundle_id: com.jazz.businessworld
+    store_title: Jazz Business World
+    developer: PAKISTAN MOBILE COMMUNICATIONS LTD
+    store_url: https://apps.apple.com/pk/app/jazz-business-world/id6467874447
+    confirmed: true
+- product_id: jazzcash_business
+  display_name: JazzCash Business
+  brand_group: Jazz
+  vertical: merchant_wallet
+  audience: merchant
+  inclusion_tier: adjacent
+  listings:
+  - platform: google_play
+    platform_app_id: com.ibm.jazzcashmerchant
+    bundle_id: com.ibm.jazzcashmerchant
+    store_title: JazzCash Business
+    developer: JazzCash
+    store_url: https://play.google.com/store/apps/details?id=com.ibm.jazzcashmerchant&hl=en&gl=pk
+    confirmed: true
+  - platform: apple_app_store
+    platform_app_id: '1526246458'
+    bundle_id: com.jazzcash.merchant
+    store_title: JazzCash Business
+    developer: PAKISTAN MOBILE COMMUNICATIONS LTD
+    store_url: https://apps.apple.com/pk/app/jazzcash-business/id1526246458
+    confirmed: true
+- product_id: jazzcash_retailer
+  display_name: JazzCash Retailer
+  brand_group: Jazz
+  vertical: retailer_wallet
+  audience: agent
+  inclusion_tier: adjacent
+  listings:
+  - platform: google_play
+    platform_app_id: com.retailerapp.mobilink
+    bundle_id: com.retailerapp.mobilink
+    store_title: JazzCash Retailer
+    developer: JazzCash
+    store_url: https://play.google.com/store/apps/details?id=com.retailerapp.mobilink&hl=en&gl=pk
+    confirmed: true
+- product_id: fikrfree
+  display_name: FikrFree
+  brand_group: Jazz
+  vertical: insurance
+  audience: consumer
+  inclusion_tier: adjacent
+  listings:
+  - platform: google_play
+    platform_app_id: com.fikrfree.android
+    bundle_id: com.fikrfree.android
+    store_title: FikrFree–Insurance Marketplace
+    developer: Jazz Digital Pakistan
+    store_url: https://play.google.com/store/apps/details?id=com.fikrfree.android&hl=en&gl=pk
+    confirmed: true
+  - platform: apple_app_store
+    platform_app_id: '6739287582'
+    bundle_id: com.fikrfree.ios
+    store_title: FikrFree
+    developer: PAKISTAN MOBILE COMMUNICATIONS LTD
+    store_url: https://apps.apple.com/pk/app/fikrfree/id6739287582
+    confirmed: true
+- product_id: tamasha
+  display_name: Tamasha
+  brand_group: Jazz
+  vertical: entertainment
+  audience: consumer
+  inclusion_tier: adjacent
+  listings:
+  - platform: google_play
+    platform_app_id: com.spbtv.mobilinktv
+    bundle_id: com.spbtv.mobilinktv
+    store_title: 'Tamasha: Live Cricket, Movies'
+    developer: Beyond-Digital
+    store_url: https://play.google.com/store/apps/details?id=com.spbtv.mobilinktv&hl=en&gl=pk
+    confirmed: true
+  - platform: apple_app_store
+    platform_app_id: '976208250'
+    bundle_id: com.spbtv.tv.mobilink
+    store_title: 'Tamasha: Live TV, Movie, Drama'
+    developer: PAKISTAN MOBILE COMMUNICATIONS LTD
+    store_url: https://apps.apple.com/pk/app/tamasha-live-tv-movie-drama/id976208250
+    confirmed: true

@@ -19,20 +19,14 @@ import yaml
 from google_play_scraper import Sort, reviews
 from google_play_scraper.features.reviews import _ContinuationToken
 
+from src.collect.review_schema import REVIEW_FIELDS, review_record
+
+__all__ = ["REVIEW_FIELDS"]
+
 DEFAULT_APPS_CONFIG = Path("config/apps.yaml")
 DEFAULT_OUTPUT_DIR = Path("data/raw/reviews")
 DEFAULT_CHECKPOINT_DIR = Path("data/raw/checkpoints")
 MIN_REQUEST_INTERVAL = 1.0
-REVIEW_FIELDS = (
-    "review_id",
-    "app_id",
-    "text",
-    "rating",
-    "timestamp",
-    "app_version",
-    "thumbs_up_count",
-)
-
 ReviewsFunction = Callable[..., tuple[list[dict[str, Any]], _ContinuationToken | None]]
 SleepFunction = Callable[[float], None]
 ClockFunction = Callable[[], float]
@@ -91,20 +85,24 @@ def load_apps(config_path: Path, selected_names: set[str] | None = None) -> list
     return selected
 
 
-def serialize_review(review: dict[str, Any], app_id: str) -> dict[str, Any]:
+def serialize_review(
+    review: dict[str, Any], platform_app_id: str, product_id: str
+) -> dict[str, Any]:
     """Map a store review to the strict non-identifying raw schema."""
     timestamp = review.get("at")
     if isinstance(timestamp, datetime):
         timestamp = timestamp.isoformat()
-    return {
-        "review_id": review.get("reviewId"),
-        "app_id": app_id,
-        "text": review.get("content"),
-        "rating": review.get("score"),
-        "timestamp": timestamp,
-        "app_version": review.get("reviewCreatedVersion"),
-        "thumbs_up_count": review.get("thumbsUpCount"),
-    }
+    return review_record(
+        review_id=review.get("reviewId"),
+        platform="google_play",
+        platform_app_id=platform_app_id,
+        product_id=product_id,
+        text=review.get("content"),
+        rating=review.get("score"),
+        timestamp=timestamp,
+        app_version=review.get("reviewCreatedVersion"),
+        helpful_count=review.get("thumbsUpCount"),
+    )
 
 
 def serialize_token(token: _ContinuationToken | None) -> dict[str, Any] | None:
@@ -225,7 +223,8 @@ def collect_app(
             pacer=pacer,
             reviews_fn=reviews_fn,
         )
-        page = [serialize_review(review, app_id) for review in raw_reviews]
+        product_id = str(app.get("product_id", app["name"]).casefold().replace(" ", "_"))
+        page = [serialize_review(review, app_id, product_id) for review in raw_reviews]
         page_path = output_dir / app_id / f"page_{checkpoint['next_page']:06d}.jsonl"
         write_page(page_path, page)
 
