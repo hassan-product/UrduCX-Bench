@@ -1,2 +1,31 @@
-# Populated and human-reviewed during data collection.
-apps: []
+apps:
+- name: SIMOSA
+  app_id: com.jazz.jazzworld
+  store_title: SIMOSA - Jazz World
+  developer: Jazz Digital Pakistan
+  query: SIMOSA
+  confirmed: true
+- name: JazzCash
+  app_id: com.techlogix.mobilinkcustomer
+  store_title: JazzCash - Your Mobile Account
+  developer: JazzCash
+  query: JazzCash
+  confirmed: true
+- name: Easypaisa
+  app_id: pk.com.telenor.phoenix
+  store_title: easypaisa – a digital bank
+  developer: Easypaisa Bank Limited
+  query: Easypaisa
+  confirmed: true
+- name: Zong
+  app_id: com.zong.customercare
+  store_title: My Zong
+  developer: CMPak - Zong
+  query: Zong Pakistan
+  confirmed: true
+- name: Ufone
+  app_id: com.ufoneselfcare
+  store_title: UPTCL– App Up Your Life!
+  developer: Pak Telecom Mobile Limited
+  query: Ufone Pakistan
+  confirmed: true

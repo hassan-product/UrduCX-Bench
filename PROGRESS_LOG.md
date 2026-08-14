@@ -25,7 +25,7 @@ Full spec lives in `PROJECT_CONTEXT.md` (local-only, git-ignored — never pushe
 | Phase | Status | Summary |
 |---|---|---|
 | 0 — Repo & environment setup | **Done** | Scaffold committed and pushed |
-| 1 — Data collection | Not started | Next up |
+| 1 — Data collection | **In progress** | App resolution and scraper job complete; full collection pending approval |
 | 2 — Cleaning & language detection | Not started | Blocked on Phase 1 |
 | 3 — Sampling & auto-labelling | Not started | Blocked on Phase 2 |
 | 4 — Human verification | Not started | Blocked on Phase 3 |
@@ -34,8 +34,8 @@ Full spec lives in `PROJECT_CONTEXT.md` (local-only, git-ignored — never pushe
 | 7 — Publication | Not started | Blocked on Phase 6 |
 | 8 — Distribution | Not started | Human-led, not agent work |
 
-**Environment:** developed so far in a cloud/web dev container (not the human's local
-machine). Human intends to continue in local VS Code with the GitHub Copilot extension.
+**Environment:** Phase 0 was developed in a cloud/web dev container. Phase 1 development
+continues locally on macOS in a Python 3.13 virtual environment.
 
 ---
 
@@ -68,6 +68,22 @@ machine). Human intends to continue in local VS Code with the GitHub Copilot ext
   metadata, and **any AI-tool-specific local artifacts** (see decision log below).
 - Committed (`chore: initialise repository scaffold`, commit `78733bc`) and pushed to
   `origin/main` on GitHub (`hassan-product/UrduCX-Bench`).
+
+### Phase 1 progress
+
+- Added and pinned `google-play-scraper==1.2.7`.
+- Added `src/collect/resolve_apps.py` with deterministic package-ID and official-developer
+  checks. Resolved and human-confirmed SIMOSA, JazzCash, Easypaisa, Zong, and Ufone.
+- Added `src/collect/scrape_reviews.py` with a strict seven-field non-identifying schema,
+  a minimum one-second request interval, exponential-backoff retries, atomic page files,
+  and JSON continuation-token checkpoints for crash-safe resume.
+- Added `src/collect/render_review_preview.py` for local browser inspection of raw page
+  files. The renderer rejects records outside the approved seven-field schema.
+- Collected one local 20-review SIMOSA sample to verify the live API and browser preview.
+  The sample, checkpoint, and generated HTML remain under ignored `data/raw/` paths.
+- Added focused collection tests. Full repository validation passes with 12 tests.
+- Stopped before the full 40,000–60,000 review collection run, pending human approval of
+  the scraper sample as required by the one-job-at-a-time workflow.
 
 ---
 
@@ -134,27 +150,20 @@ code that can fail (scraping errors, rate-limit handling, PII-scrubber edge case
 
 ## 6. Work pending / next steps
 
-**Immediate next action: Phase 1 — Data collection** (see `PROJECT_CONTEXT.md` Section 8,
-items 11–16). Not started yet. Requires human input first:
+**Immediate next action: continue Phase 1 only after human approval of the local scraper
+sample.** The remaining build order is:
 
-- Confirm which apps beyond SIMOSA (`com.jazz.jazzworld`) and JazzCash
-  (`com.techlogix.mobilinkcustomer`) to scrape (Easypaisa, Zong/Ufone, others —
-  see `PROJECT_CONTEXT.md` Section 5.1 and Open Question #2 in Section 17).
-- Once confirmed, planned build order:
-  1. Add `google-play-scraper` to `requirements.txt` / `pyproject.toml`.
-  2. `src/collect/resolve_apps.py` — resolves package IDs, writes `config/apps.yaml`
-     (human reviews and confirms before proceeding).
-  3. `src/collect/scrape_reviews.py` — rate-limited (1 req/sec max), checkpointed,
-     exponential backoff, strict no-PII schema.
-  4. Run collection, target 40k–60k reviews, ≥4 apps, ≥24 months span.
-  5. `src/collect/validate_raw.py` — coverage/quality report.
-  6. Commit code only; raw data never leaves the local machine / never enters git.
+1. Run full collection, targeting 40k–60k reviews across at least four confirmed apps
+  with at least 24 months of coverage.
+2. Stop and present the collection output locally for human review.
+3. Add and run `src/collect/validate_raw.py` for coverage and quality reporting.
+4. Commit code only; raw data never leaves the local machine or enters git.
 - **Acceptance target for Phase 1:** ≥40,000 reviews, ≥4 apps, ≥24 months span,
   validation report printed, no PII fields in stored schema.
 
 **Open questions still needing the human's decision (from `PROJECT_CONTEXT.md` Section 17):**
 1. Accept the 24-intent taxonomy as-is, or revise after reading a 200-review sample?
-2. Which apps beyond SIMOSA and JazzCash to include?
+2. App scope resolved for Phase 1: SIMOSA, JazzCash, Easypaisa, Zong, and Ufone.
 3. Publish both dev/test splits, or hold out test? (brief recommends publishing both)
 4. Final model roster for the leaderboard.
 5. Single-annotator gold set acceptable for v1? (brief recommends yes, documented in
@@ -206,3 +215,4 @@ When the human types **`wrap`** in a chat session:
 |---|---|---|
 | 2026-08-14 | `78733bc` | Phase 0 scaffold committed and pushed |
 | 2026-08-14 | *(pending this commit)* | Created `PROGRESS_LOG.md` as project memory file |
+| 2026-08-14 | *(pending)* | Added Phase 1 app resolution, scraper, tests, and local preview |
