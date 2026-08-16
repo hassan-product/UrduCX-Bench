@@ -26,7 +26,7 @@ Full spec lives in `PROJECT_CONTEXT.md` (local-only, git-ignored — never pushe
 |---|---|---|
 | 0 — Repo & environment setup | **Done** | Scaffold committed and pushed |
 | 1 — Data collection | **Done** | 17 products collected; ~107.8k unique reviews; validator printed; human reviewed localhost previews |
-| 2 — Cleaning & language detection | **Next** | Deduplicate, normalise product IDs, detect language/script, write `data/interim/` |
+| 2 — Cleaning & language detection | **In progress** | Cleaned-schema helpers and a sampled browser preview are implemented; full language detection remains next |
 | 3 — Sampling & auto-labelling | Not started | Blocked on Phase 2 |
 | 4 — Human verification | Not started | Blocked on Phase 3 |
 | 5 — Benchmark task building | Not started | Blocked on Phase 4 |
@@ -316,6 +316,44 @@ with `certifi==2026.7.22` for verified TLS. All raw data stays local and is git-
 - Code committed and pushed as `9cfae77`. Raw review files were not committed.
 - Suite: 28 tests, `ruff check` clean.
 
+#### Job 9 — Cleaned review preview and product filter UX (in progress)
+
+- Added `src/prep/clean.py` with the canonical cleaned-review field contract used by
+  Phase 2 preview code. The preview rejects records whose keys do not exactly match the
+  cleaned schema, so a raw record cannot silently appear as cleaned data.
+- Added `src/prep/render_clean_preview.py`. It loads cleaned JSONL, attaches the registry
+  `brand_group` without mutating source records, samples up to `--per-slice` records per
+  `(product_id, platform)`, and renders a self-contained local HTML inspection page.
+  Sampling is deliberately per product and platform so the larger Google slices do not
+  drown out Apple or smaller products in a browser review window.
+- The preview keeps Platform, Brand group, and Rating filters separate. Product identity
+  continues to use canonical `product_id`; brand filtering is only a convenience view and
+  does not merge distinct Jazz applications.
+- Product-filter UI went through three decisions based on the human's requested behavior:
+  1. The initial checkbox grid was insufficient because it permanently occupied the page.
+  2. A native multi-select listbox supported multiple values but was not a dropdown with
+     checkboxes and therefore did not match the requested interaction.
+  3. The final control is a closed-by-default dropdown button. Opening it reveals a
+     checkbox panel with `Select all` and `Clear`; the panel closes on outside click, and
+     the button label reports `All products`, `No products selected`, or the number of
+     selected products. This preserves multi-product filtering while keeping the page
+     compact.
+- Selection semantics are explicit: all products start selected; toggling one checkbox
+  updates the result table and button label; brand changes rebuild only the visible product
+  options; clicking outside closes the panel without changing selection.
+- Added focused tests in `tests/prep/test_render_clean_preview.py` for raw-schema rejection,
+  per-slice sampling, brand attachment, escaped review text, and the dropdown/checkbox
+  markup. The live localhost page was regenerated and manually exercised: opening the
+  dropdown exposed product checkboxes, unchecking `jazzcash` changed the selection count,
+  and clicking outside closed the panel.
+- Verification on 2026-08-16: `ruff check src/prep/render_clean_preview.py
+  tests/prep/test_render_clean_preview.py` passed; `pytest
+  tests/prep/test_render_clean_preview.py -q` passed with 4 tests. The preview rendered
+  7,131 sampled records from 54,519 cleaned records.
+- The generated preview remains local/interim output and is not intended to become the
+  benchmark release dataset. Raw and interim data remain git-ignored; the preview source
+  and tests are the tracked deliverables.
+
 ---
 
 ## 4. Key decisions and their reasoning
@@ -365,6 +403,15 @@ with `certifi==2026.7.22` for verified TLS. All raw data stays local and is git-
 13. **`product_id` written at scrape time follows `apps.yaml`.** Census used the registry;
     the first five-app quota run used display-name fallbacks (`zong`, `ufone`). Phase 2
     must remap via `platform_app_id`, not trust every stored `product_id` blindly.
+14. **Product selection uses a dropdown with checkboxes.** A native multi-select listbox
+  technically supports multiple values but does not provide the requested compact
+  dropdown interaction or visible checkbox affordances. The custom control therefore
+  keeps checkboxes inside an expandable panel, with explicit select-all, clear, outside
+  click dismissal, and a summary label.
+15. **Preview samples are bounded by product and platform.** Rendering the complete
+  cleaned corpus in one HTML page would make human inspection slow and can freeze the
+  browser. The preview intentionally samples each product/platform slice while showing
+  the total cleaned count separately.
 
 ---
 
@@ -439,9 +486,9 @@ with `certifi==2026.7.22` for verified TLS. All raw data stays local and is git-
 
 ## 6. Work pending / next steps
 
-**Immediate next action: start Phase 2 cleaning.**
+**Immediate next action: complete Phase 2 cleaning and language detection.**
 
-Phase 1 collection and validation are done. Raw data stays local. Next build order:
+The cleaned-preview inspection surface is in place. Raw data stays local. Next build order:
 
 1. Deduplicate raw JSONL on `(platform, review_id)` — drop the ~2,989 census overlaps.
 2. Normalise `product_id` via `platform_app_id` → registry map (`zong`→`my_zong`,
@@ -450,7 +497,9 @@ Phase 1 collection and validation are done. Raw data stays local. Next build ord
    The validator's Arabic-block check is not enough; Roman Urdu is Latin script.
 4. Write a single clean dataset to `data/interim/` (Parquet preferred).
 5. Print a Phase 2 validation report (unique counts, date span, language mix).
-6. Commit code only. Interim data stays git-ignored.
+6. Regenerate the cleaned preview from the completed clean dataset and review it in the
+  dropdown-with-checkboxes UI.
+7. Commit code only. Interim data stays git-ignored.
 
 **Phase 1 acceptance criteria (from `PROJECT_CONTEXT.md`) — met:**
 - ≥40,000 reviews across ≥4 apps spanning ≥24 months: ~107,780 unique across 17
@@ -470,7 +519,8 @@ Phase 1 collection and validation are done. Raw data stays local. Next build ord
 
 ## 7. Environment / how to resume locally
 
-Repo: `hassan-product/UrduCX-Bench`, branch `main`. Latest code commit: `9cfae77`.
+Repo: `hassan-product/UrduCX-Bench`, branch `main`. Latest code commit is the most recent
+session commit on `main`; run `git log -1 --oneline` after pulling.
 
 ```bash
 git clone https://github.com/hassan-product/UrduCX-Bench.git
@@ -504,6 +554,8 @@ python -m src.collect.render_source_registry
 python -m src.collect.render_availability_census \
   --google-metadata data/raw/availability_census/google_metadata.json
 python -m src.collect.validate_raw
+python src/prep/render_clean_preview.py
+python -m http.server 8768 --bind 127.0.0.1 --directory data/interim/clean_preview
 ```
 
 ---
@@ -534,3 +586,4 @@ When the human types **`wrap`** in a chat session:
 | 2026-08-14 | `9f473af` | Phase 1 Job 1–2: app resolver, Google scraper, review preview, tests |
 | 2026-08-15 | `33ea30a` | Phase 1 Job 3–6: dual-platform registry, Apple collector, census, 100k quota config |
 | 2026-08-16 | `9cfae77` | Phase 1 Job 7–8: quotas, 17-app collection, empty-page guard, `validate_raw` |
+| 2026-08-16 | pending | Phase 2 preview: cleaned-schema contract, bounded review preview, dropdown-with-checkboxes product filter, focused tests |
