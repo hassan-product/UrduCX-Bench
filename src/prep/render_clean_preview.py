@@ -104,7 +104,7 @@ def render_preview(records: list[dict[str, Any]], total_cleaned: int) -> str:
     .metric span {{ color: var(--muted); font-size: 12px; }}
     main {{ padding: 22px 0 48px; }}
     .controls {{
-      display: grid; grid-template-columns: 220px 260px 1fr; gap: 16px; margin-bottom: 16px;
+      display: grid; grid-template-columns: 220px 260px 220px 1fr; gap: 16px; margin-bottom: 16px;
     }}
     .field {{ color: var(--muted); font-size: 11px; font-weight: 700; text-transform: uppercase; }}
     select {{
@@ -206,6 +206,15 @@ def render_preview(records: list[dict[str, Any]], total_cleaned: int) -> str:
           {brand_options}
         </select>
       </label>
+      <label class="field">Language
+        <select id="language">
+          <option value="all">All languages</option>
+          <option value="english">English</option>
+          <option value="roman_urdu">Roman Urdu</option>
+          <option value="urdu_script">Urdu script</option>
+          <option value="code_switched">Code-switched</option>
+        </select>
+      </label>
       <div class="field">Products
         <div class="dropdown" id="product-dropdown">
           <button
@@ -258,6 +267,7 @@ def render_preview(records: list[dict[str, Any]], total_cleaned: int) -> str:
     const visibleCount = document.querySelector("#visible-count");
     const platformSelect = document.querySelector("#platform");
     const brandSelect = document.querySelector("#brand");
+    const languageSelect = document.querySelector("#language");
     const productDropdown = document.querySelector("#product-dropdown");
     const productToggle = document.querySelector("#product-toggle");
     const productPanel = document.querySelector("#product-panel");
@@ -337,10 +347,12 @@ def render_preview(records: list[dict[str, Any]], total_cleaned: int) -> str:
     function show() {{
       const platform = platformSelect.value;
       const brand = brandSelect.value;
+      const language = languageSelect.value;
       const picked = selectedProducts();
       const visible = reviews.filter(r =>
         (platform === "all" || r.platform === platform) &&
         (brand === "all" || r.brand_group === brand) &&
+        (language === "all" || r.language === language) &&
         picked.includes(r.product_id) &&
         (rating === "all" || String(r.rating) === rating)
       );
@@ -366,6 +378,7 @@ def render_preview(records: list[dict[str, Any]], total_cleaned: int) -> str:
     }}
 
     platformSelect.addEventListener("change", show);
+    languageSelect.addEventListener("change", show);
     brandSelect.addEventListener("change", () => {{ renderProductBoxes(); show(); }});
     document.querySelector("#select-all").addEventListener("click", () => setAll(true));
     document.querySelector("#clear-all").addEventListener("click", () => setAll(false));

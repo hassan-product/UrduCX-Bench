@@ -4,6 +4,7 @@ from pathlib import Path
 
 from src.prep.clean import (
     clean_records,
+    detect_language,
     drop_reason,
     load_product_map,
     normalise_text,
@@ -28,6 +29,13 @@ def test_drop_reason_rejects_empty_emoji_and_short_text() -> None:
 def test_word_count_counts_urdu_and_latin_tokens() -> None:
     assert word_count("JazzCash app hang") == 3
     assert word_count("بہت اچھا نہیں") == 3
+
+
+def test_detect_language_handles_script_and_register() -> None:
+    assert detect_language("بہت اچھا نہیں چل رہا") == "urdu_script"
+    assert detect_language("app bohat acha hai lekin balance nahi aya") == "roman_urdu"
+    assert detect_language("The application keeps crashing after login") == "english"
+    assert detect_language("App بند ہو گیا hai") == "code_switched"
 
 
 def test_remap_product_id_uses_registry_not_stored_name() -> None:
@@ -96,6 +104,7 @@ def test_clean_records_dedupes_id_then_normalised_text() -> None:
     assert drops["duplicate_text"] == 1
     assert kept[0]["text_clean"] == "App hang ho gaya hai"
     assert "text_hash" in kept[0]
+    assert kept[0]["language"] == "roman_urdu"
 
 
 def test_load_product_map_reads_current_registry() -> None:

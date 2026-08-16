@@ -26,8 +26,8 @@ Full spec lives in `PROJECT_CONTEXT.md` (local-only, git-ignored — never pushe
 |---|---|---|
 | 0 — Repo & environment setup | **Done** | Scaffold committed and pushed |
 | 1 — Data collection | **Done** | 17 products collected; ~107.8k unique reviews; validator printed; human reviewed localhost previews |
-| 2 — Cleaning & language detection | **In progress** | Cleaned-schema helpers and a sampled browser preview are implemented; full language detection remains next |
-| 3 — Sampling & auto-labelling | Not started | Blocked on Phase 2 |
+| 2 — Cleaning & language detection | **In progress** | Cleaning, product-ID remapping, deduplication, and deterministic language detection are implemented and tested (54,519 kept records); PII scrubber (`scrub_pii.py`, step 19) is **not yet built** — required before any review text leaves the local environment |
+| 3 — Sampling & auto-labelling | **In progress** | Stratified sampler (9,000 of 54,519) and the full 24-intent human-authored taxonomy are complete and tested; `auto_label.py` not yet built; blocked on the Phase 2 PII scrubber and on the human adding an API key locally |
 | 4 — Human verification | Not started | Blocked on Phase 3 |
 | 5 — Benchmark task building | Not started | Blocked on Phase 4 |
 | 6 — Scoring harness | Not started | Blocked on Phase 5 |
@@ -354,6 +354,106 @@ with `certifi==2026.7.22` for verified TLS. All raw data stays local and is git-
   benchmark release dataset. Raw and interim data remain git-ignored; the preview source
   and tests are the tracked deliverables.
 
+#### Job 10 — Phase 2 cleaning and first language labels (in progress)
+
+- Ran `src/prep/clean.py` against the complete local raw corpus: 111,169 input records
+  became 54,519 kept records. Drops were 49,923 `too_short`, 3,462 duplicate text,
+  1,820 duplicate IDs, and 1,445 emoji-only records.
+- Added a deterministic `language` field to the cleaned schema. The classifier first
+  checks Unicode script, labels Arabic-only text `urdu_script`, mixed Arabic and Latin
+  text `code_switched`, and uses a small explicit Roman Urdu marker vocabulary for
+  Latin-only text; remaining Latin text is `english`.
+- Current distribution: 47,930 `english`, 5,559 `roman_urdu`, 798 `urdu_script`, and
+  232 `code_switched`. A manual sample from every bucket looked coherent, but this
+  heuristic is an initial engineering label, not a human-verified gold annotation.
+- Added focused tests for all four categories and for propagation of `language` onto
+  cleaned records. The generated JSONL passed the strict preview schema and the full
+  suite passed with 39 tests.
+- Next decision point: inspect a larger stratified language sample and decide whether
+  to refine the Roman Urdu vocabulary or add a lightweight language library before
+  freezing the Phase 2 labels.
+
+#### Job 11 — Language audit and Phase 2 validation slice (in progress)
+
+- Audited a reproducible 25-item sample from each language bucket plus product-level
+  distributions. English, Roman Urdu, Urdu script, and code-switched examples were
+  coherent; mixed examples contained both scripts as expected. The initial marker-based
+  Roman Urdu heuristic was retained rather than adding a heavyweight dependency before
+  human review.
+- Added a Language filter to the cleaned-review preview. Platform, Brand group, Language,
+  Product, and Rating can now be inspected independently; the product dropdown still
+  opens a checkbox panel for multi-selection.
+- Extended the cleaner report with platform totals and the observed calendar date window.
+  The final run reports 49,555 Google Play reviews and 4,964 Apple App Store reviews,
+  spanning 2015-03-31 through 2026-08-15.
+- Fixed a report-only timezone bug exposed by the full run: Google timestamps can be
+  offset-naive while Apple timestamps are offset-aware. The report now compares normalized
+  calendar dates without changing stored source timestamps.
+- Full validation after the fix: `ruff check .`, `pytest -q` with 39 passing tests,
+  `python src/prep/clean.py`, and `python src/prep/render_clean_preview.py` all passed.
+- Phase 2 is not yet frozen: the labels are engineering heuristics and still need a human
+  stratified review before Phase 3 sampling and auto-labelling begins.
+
+#### Job 12 — Commit pending Phase 2 language-detection work (housekeeping)
+
+- Discovered that the language-detection code described in Job 10/11 above (deterministic
+  Unicode + Roman Urdu marker classifier in `clean.py`, plus the platform/date-window
+  reporting) had been written and tested in an earlier session but was **never committed
+  to git** — it sat as an uncommitted working-tree change while the log text describing
+  it was already committed. Verified the code still passes the full suite (51 tests) and
+  `ruff check .` before including it in this session's commit, so Phase 2's language
+  detection is now actually in version control, not just described.
+
+#### Job 13 — Phase 3 Step 1: stratified sampling (`src/label/sample.py`)
+
+- Wrote `sample_records()`: deterministic, seeded round-robin sampling across every
+  populated joint stratum of `(product_id, language, rating)`. Sparse strata (e.g. the
+  798 `urdu_script` or 232 `code_switched` records) are never starved — once a stratum is
+  exhausted, its remaining quota is redistributed across the other populated strata
+  automatically, rather than sampling proportionally and losing rare classes.
+- Added `build_report()` and a CLI (`python -m src.label.sample`) that write a
+  reproducibility manifest: seed, SHA-256 of both the input and output files, marginal
+  counts per `product_id`/`language`/`rating`, and the full joint-stratum breakdown.
+- TDD: wrote 7 focused tests first (balanced sampling, redistribution from sparse strata,
+  seeded reproducibility, rejection of invalid `target_size`, report content), confirmed
+  they failed before `sample.py` existed, then implemented until green.
+- Ran against the real 54,519-record cleaned corpus: sampled exactly 9,000 records,
+  seed `20260817`. All 17 products and all 4 language classes are represented; every
+  scarce `urdu_script`/`code_switched` record in a given product/rating cell was kept
+  rather than down-sampled. Wrote `data/interim/reviews_phase3_sample.jsonl` and
+  `data/interim/reviews_phase3_sample_report.json` (both git-ignored, matching the
+  project's raw/interim-data convention).
+- Rendered the sample through the existing `render_clean_preview` CLI
+  (`data/interim/phase3_sample_preview/index.html`) and verified it in a real browser via
+  an automated page snapshot: title, all four filter controls, and 8,271 rendered rows
+  (the existing per-product/platform slice cap, not a data-loss bug) all confirmed present.
+- Human raised a concern that 9,000 records "lost" the 54,519-record corpus; clarified
+  that the full cleaned file is untouched on disk and remains the permanent source —
+  the 9,000-item file is a separate, additional sample used only for auto-labelling.
+  Human approved proceeding on that basis.
+
+#### Job 14 — Phase 3 Step 2: human-authored taxonomy (`config/taxonomy.yaml`, `src/label/taxonomy.py`)
+
+- Per `PROJECT_CONTEXT.md` Section 6 and build-plan step 23, taxonomy definitions are a
+  **human-judgment gate** — declined to auto-fill `config/taxonomy.yaml` and instead
+  facilitated the human authoring all 24 intents.
+- Walked through all 6 families (Billing & Charges, Access & Account, Money Movement,
+  Fraud & Safety, Network & Service, Product & Navigation) one family per batch. For each
+  of the 24 intents, drafted a 1-line definition, 2 positive examples, 1 negative example,
+  and an explicit `negative_rationale` — the reasoning for why the negative example is a
+  boundary trap against a specific, named sibling intent (e.g. why
+  `balance_disappeared_unexplained` is not `unauthorized_vas_deduction` when a cause is
+  named). Human reviewed and approved every batch before the next was drafted.
+- Encoded the approved content into `config/taxonomy.yaml` (`version: 1`, 24 intents,
+  4 languages, 4 severities).
+- Wrote `src/label/taxonomy.py` (`load_taxonomy()`): validates required fields, rejects
+  duplicate intent IDs, and enforces exactly 2 positive examples per intent.
+- TDD: 5 focused tests written first and confirmed failing (`ModuleNotFoundError`)
+  before `taxonomy.py` existed, then implemented until green — confirmed 24 unique
+  intent IDs, all 6 families present, every intent has a non-empty definition/examples/
+  rationale, and malformed configs (duplicate ID, wrong example count) raise `ValueError`.
+- Full suite after this step: 51 tests passing, `ruff check .` clean.
+
 ---
 
 ## 4. Key decisions and their reasoning
@@ -412,6 +512,22 @@ with `certifi==2026.7.22` for verified TLS. All raw data stays local and is git-
   cleaned corpus in one HTML page would make human inspection slow and can freeze the
   browser. The preview intentionally samples each product/platform slice while showing
   the total cleaned count separately.
+16. **Phase 3 sample size fixed at 9,000, not the full 54,519-record corpus.** The spec's
+  floor is 8,000–10,000 balanced items; labelling the full corpus would multiply
+  auto-labelling API cost roughly 6x for no benchmark benefit, since Phase 4 only
+  human-verifies a subset regardless. The full cleaned file is retained untouched as the
+  permanent source; the sample is an additional, separate file used only for labelling.
+17. **Auto-labelling model: Claude Haiku 4.5, not Sonnet or Opus.** Chosen for cost
+  (~$1/$5 per MTok input/output vs. ~$2/$10 for Sonnet 5 and ~$5/$25 for Opus 5) given
+  the project's built-in Phase 4 kappa gate exists specifically to catch auto-label
+  quality problems before they reach the gold set. If Phase 4 kappa comes back below the
+  project's own 0.6 threshold, or specific intents show poor agreement, the plan is to
+  selectively re-label only those flagged items with a stronger model — not the full
+  9,000-item batch — rather than defaulting to a more expensive model upfront.
+18. **API key is human-supplied and local-only.** The human is using their own Anthropic
+  Console credit (not a GitHub Copilot subscription, which does not expose a portable API
+  key for use in standalone scripts). The key goes into a local, git-ignored `.env` file
+  per the existing `.env.example` convention; it is never pasted into chat or committed.
 
 ---
 
@@ -482,24 +598,51 @@ with `certifi==2026.7.22` for verified TLS. All raw data stays local and is git-
   `complete: true`, and stops. Covered by `test_collect_app_marks_complete_on_empty_page`.
   Corrupted Retailer files from the loop were deleted and the listing was re-collected.
 
+### Issue 10 — Phase 2 PII scrubber was never built; prior work sat uncommitted (Phase 2/3)
+- **What happened:** Build-plan step 19 (`src/prep/scrub_pii.py`, regex-redacting phone
+  numbers, CNIC-shaped numbers, emails, and account numbers before anything leaves the
+  local environment) does not exist anywhere in the repo, even though earlier log entries
+  (Job 10/11) describe Phase 2 cleaning and language work as substantially complete.
+  Separately, that same language-detection code existed only in the working tree and had
+  never been committed to git.
+- **Why it matters now:** Phase 3 auto-labelling sends raw review text to a third-party
+  LLM API. The project's own privacy rule ("this must run before anything is published")
+  is written for the release dataset, but the same reasoning applies to sending
+  unredacted text to any external API — phone numbers, CNIC numbers, and emails should
+  not leave the local machine unredacted.
+- **Resolution status:** Not yet resolved. Flagged as a blocking item before running
+  `auto_label.py` against real data; see "Work pending" below. The previously-uncommitted
+  language-detection code has been committed as part of this session (Job 12).
+
 ---
 
 ## 6. Work pending / next steps
 
-**Immediate next action: complete Phase 2 cleaning and language detection.**
+**Immediate next action: resolve the Phase 2 PII gap, then build `auto_label.py`.**
 
-The cleaned-preview inspection surface is in place. Raw data stays local. Next build order:
+Before any real review text is sent to Anthropic's API, the Phase 2 PII scrubber
+(build-plan step 19) should exist and run over the sampled data — it was never built in
+an earlier session despite the cleaning/language work around it being done. Recommended
+order:
 
-1. Deduplicate raw JSONL on `(platform, review_id)` — drop the ~2,989 census overlaps.
-2. Normalise `product_id` via `platform_app_id` → registry map (`zong`→`my_zong`,
-   `ufone`→`uptcl`, and any other display-name leftovers).
-3. Detect language/script per review: `urdu_script`, `roman_urdu`, `english`, `mixed`.
-   The validator's Arabic-block check is not enough; Roman Urdu is Latin script.
-4. Write a single clean dataset to `data/interim/` (Parquet preferred).
-5. Print a Phase 2 validation report (unique counts, date span, language mix).
-6. Regenerate the cleaned preview from the completed clean dataset and review it in the
-  dropdown-with-checkboxes UI.
-7. Commit code only. Interim data stays git-ignored.
+1. Write `src/prep/scrub_pii.py`: regex-redact phone numbers, CNIC-shaped numbers, email
+   addresses, and account numbers, replacing each with a typed placeholder (`<PHONE>`,
+   `<CNIC>`, `<ACCOUNT>`). Add unit tests covering at least 10 realistic cases (per the
+   original Phase 2 acceptance criteria). Run it over `reviews_phase3_sample.jsonl`
+   before that file is ever sent to an LLM.
+2. Human adds their own `ANTHROPIC_API_KEY` to a local, git-ignored `.env` (already
+   confirmed: using existing Anthropic Console credit, not a Copilot-provided key).
+3. Write `src/label/auto_label.py`: send each PII-scrubbed sampled review to
+   `claude-haiku-4-5` with the approved taxonomy, request structured JSON output
+   (intent, language, severity, confidence, one-sentence rationale), cache every response
+   to disk keyed by content hash, batch requests, handle rate limits, resume cleanly
+   after interruption, and log cumulative spend as it runs.
+4. Run auto-labelling on the 9,000-item sample. Estimated cost with Haiku 4.5: roughly
+   $15–33, based on Anthropic's own published per-ticket cost example scaled to this
+   volume, likely lower given caching and shorter per-item text than that example.
+5. Write `src/label/label_stats.py`: per-intent counts, confidence distribution, flag any
+   intent with fewer than 30 examples.
+6. Re-sample and top up any starved intents before moving to Phase 4.
 
 **Phase 1 acceptance criteria (from `PROJECT_CONTEXT.md`) — met:**
 - ≥40,000 reviews across ≥4 apps spanning ≥24 months: ~107,780 unique across 17
@@ -507,9 +650,20 @@ The cleaned-preview inspection surface is in place. Raw data stays local. Next b
 - Validation report printed (`python -m src.collect.validate_raw`).
 - No PII fields in the stored schema.
 
+**Phase 3 progress against acceptance criteria (from `PROJECT_CONTEXT.md`):**
+- Stratified sample of 8,000–10,000 reviews balanced across product, language, and
+  rating: **done** (9,000 sampled, seeded, reproducible, report on disk).
+- `config/taxonomy.yaml` with human-written definitions and 2 positive + 1 negative
+  example per intent: **done** (all 24 intents, human-approved batch by batch).
+- Auto-labelling with cached, resumable, spend-logged LLM calls: **not started**
+  (blocked on the PII scrubber above).
+- Every intent with ≥30 examples, spend under budget, cache hit-rate verified on re-run:
+  **not started**.
+
 **Open questions for later phases:**
-1. Accept the 24-intent taxonomy as-is, or revise after reading a 200-review sample?
-   (Deferred to Phase 3 — the human makes this call.)
+1. ~~Accept the 24-intent taxonomy as-is, or revise after reading a 200-review sample?~~
+   **Resolved:** human authored and approved all 24 intents with definitions and
+   examples directly, family by family.
 2. Publish both dev/test splits, or hold out the test set? (Spec recommends publishing both.)
 3. Final model roster for the leaderboard (Phase 6).
 4. Single-annotator gold set acceptable for v1? (Spec recommends yes, documented in

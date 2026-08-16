@@ -71,6 +71,8 @@ def test_render_preview_escapes_script_and_lists_filters() -> None:
     assert "Cleaned review inspection" in html
     assert "54,519" in html
     assert "Google Play only" in html
+    assert 'id="language"' in html
+    assert "Roman Urdu" in html
     assert 'value="Jazz"' in html
     assert 'id="product-toggle"' in html
     assert 'id="product-panel"' in html

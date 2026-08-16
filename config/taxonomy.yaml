@@ -1,6 +1,260 @@
 # Definitions and examples are human-owned and added during benchmark design.
-version: 0
-intents: []
+# Approved 2026-08-17. Human authored definitions/examples; negative examples encode
+# the boundary against the intent's most likely confusion.
+version: 1
+intents:
+  # A. Billing & Charges
+  - id: unauthorized_vas_deduction
+    family: billing_and_charges
+    definition: Money was deducted for a value-added service the user says they never subscribed to.
+    positive_examples:
+      - "Rs 30 katha gaya subscription k naam pe, maine kabhi subscribe nahi kiya"
+      - "Every week 50 rupees is deducted for some VIP/game service I never activated"
+    negative_example: "My balance is missing and I don't know why, no service name mentioned"
+    negative_rationale: >-
+      No specific subscription/service is named, so there's nothing to confirm as
+      unauthorized VAS; belongs in balance_disappeared_unexplained instead.
+  - id: balance_disappeared_unexplained
+    family: billing_and_charges
+    definition: Balance was reduced with no identifiable cause named by the user.
+    positive_examples:
+      - "Mera balance khud b khud kam ho gaya, kuch samajh nahi aya"
+      - "Woke up and 200 rupees were gone from my account, no transaction shown"
+    negative_example: "Balance kam ho gaya kyunki VAS subscription active tha jo maine cancel nahi kiya"
+    negative_rationale: >-
+      The user names a cause (an active VAS subscription); that makes it
+      unauthorized_vas_deduction, not unexplained.
+  - id: package_not_activated
+    family: billing_and_charges
+    definition: User paid for a bundle/package but did not receive its benefits.
+    positive_examples:
+      - "3 din ka internet package le liya paisay kat gaye lekin data nahi mila"
+      - "Purchased the weekly minutes bundle, payment went through, but I still can't make calls"
+    negative_example: "I bought a package last month and it expired, now I want it back"
+    negative_rationale: >-
+      The package did activate and work; the complaint is about expiry/renewal
+      expectations, not non-activation.
+  - id: overcharging_dispute
+    family: billing_and_charges
+    definition: User was charged more than the advertised/agreed tariff for a specific transaction.
+    positive_examples:
+      - "Advertised rate Rs 10 tha transfer pe, mujh se Rs 25 kaat liye"
+      - "The app shows a 1% fee but I was charged 3% on my cash-out"
+    negative_example: "Fees are too high compared to other apps, this app is a rip-off"
+    negative_rationale: >-
+      A general pricing opinion with no discrepancy between advertised and charged
+      amount for a specific transaction; closer to feature_request_or_ux_complaint.
+  - id: refund_request
+    family: billing_and_charges
+    definition: User explicitly asks for money to be returned.
+    positive_examples:
+      - "Please refund my money, transaction fail ho gayi thi"
+      - "I want my Rs 1500 back, the service was never delivered"
+    negative_example: "This app took my money and never gave the service, scam!"
+    negative_rationale: >-
+      Describes the same underlying problem but never actually asks for a refund;
+      it's a complaint/accusation, not a request for money back.
+
+  # B. Access & Account
+  - id: login_failure
+    family: access_and_account
+    definition: User cannot get into the app despite entering correct credentials/PIN.
+    positive_examples:
+      - "App login nahi ho raha, sahi password dalne k bawajood error a raha hai"
+      - "Can't sign in, the app just shows 'invalid credentials' even though my password is correct"
+    negative_example: "Login ho gaya lekin OTP hi nahi aya verification k liye"
+    negative_rationale: >-
+      The block is at the verification-code step, not the login screen itself;
+      that's otp_not_received.
+  - id: otp_not_received
+    family: access_and_account
+    definition: A requested one-time verification code never arrives.
+    positive_examples:
+      - "OTP nahi aya 20 minute se, dobara try kiya phir bhi kuch nahi"
+      - "Never received the verification code to log into my account, tried three times"
+    negative_example: "OTP came but the app says it's the wrong code"
+    negative_rationale: >-
+      The code did arrive; the problem is a validation/matching failure, closer to
+      login_failure.
+  - id: kyc_verification_stuck
+    family: access_and_account
+    definition: Identity verification or account-upgrade process is stuck/pending with no resolution.
+    positive_examples:
+      - "CNIC verification 1 week se pending hai, koi update nahi mil raha"
+      - "My KYC upgrade has been 'under review' for 10 days now with no response"
+    negative_example: "My account got blocked after I submitted my CNIC for verification"
+    negative_rationale: >-
+      The verification process concluded (with a block); it isn't stuck/pending
+      anymore, so this belongs in account_blocked_frozen.
+  - id: account_blocked_frozen
+    family: access_and_account
+    definition: Account access has been suspended or frozen by the provider.
+    positive_examples:
+      - "Mera account achanak block ho gaya bina kisi wajah k"
+      - "My account was frozen overnight and I can't access any of my funds"
+    negative_example: "I can't log in, it just says invalid password every time"
+    negative_rationale: >-
+      No block/freeze is mentioned; this is a generic access error, i.e.
+      login_failure.
+  - id: sim_or_number_issue
+    family: access_and_account
+    definition: Problem tied to SIM swap, number porting, or a phone-number change.
+    positive_examples:
+      - "Number port karwaya tha dusri company mein, ab is app mein wo number kaam nahi kar raha"
+      - "I changed my SIM card and now the app doesn't recognize my registered number"
+    negative_example: "I didn't receive the OTP on my registered number"
+    negative_rationale: >-
+      No SIM swap, porting, or number change is described; this is simply a
+      missing-code issue, i.e. otp_not_received.
+
+  # C. Money Movement
+  - id: transfer_failed_money_deducted
+    family: money_movement
+    definition: A money transfer failed to reach the recipient, but the sender's balance was still reduced.
+    positive_examples:
+      - "Paisay bhejay dost ko, uske paas nahi pohanchay lekin mera balance kat gaya"
+      - "Sent Rs 5000 to my brother, transaction shows failed but the amount is still deducted from my account"
+    negative_example: "Sent Rs 5000 but it went to the wrong account number by mistake"
+    negative_rationale: >-
+      The transfer succeeded technically and landed somewhere, just the wrong
+      person; that's transfer_to_wrong_recipient.
+  - id: transfer_to_wrong_recipient
+    family: money_movement
+    definition: Money was sent successfully but to the wrong person/number.
+    positive_examples:
+      - "Number galat type ho gaya, paisay kisi aur k account mein chalay gaye"
+      - "I entered the wrong account number and the money went to a stranger"
+    negative_example: "I sent money to my friend but it never arrived, balance is gone"
+    negative_rationale: >-
+      No wrong recipient is named; the money simply vanished with no confirmed
+      destination, which is transfer_failed_money_deducted.
+  - id: cash_out_agent_problem
+    family: money_movement
+    definition: Issue occurring specifically at a cash-out/agent point (not in-app transfer).
+    positive_examples:
+      - "Agent k paas cash out karwaya, uska system paisay kaat k cash nahi de raha"
+      - "Went to the agent shop to withdraw cash, my balance was deducted but the agent didn't hand over any money"
+    negative_example: "Bank transfer nahi ho raha app se, error a raha hai"
+    negative_rationale: >-
+      No agent/shop is involved; this is purely an in-app transfer error, not a
+      physical cash-out issue.
+  - id: bill_payment_not_reflected
+    family: money_movement
+    definition: A bill payment was made but does not show as paid/received on the biller's side.
+    positive_examples:
+      - "Electricity bill pay kar diya app se, lekin bijli company k system mein abhi bhi unpaid dikha raha hai"
+      - "Paid my internet bill through the app, payment deducted, but the provider says it's still outstanding"
+    negative_example: "I tried to pay my bill but the app crashed before I could complete the payment"
+    negative_rationale: >-
+      No payment was actually completed/deducted; the transaction never went
+      through, so there's nothing to "not reflect."
+  - id: loan_repayment_dispute
+    family: money_movement
+    definition: Dispute over nano-loan/credit terms, rollover charges, or automatic repayment deductions.
+    positive_examples:
+      - "Loan liya tha 1000 ka, wapis karne pe auto-deduct hua extra charges k sath jo bataye nahi gaye thay"
+      - "The app auto-deducted my loan repayment plus a rollover fee I was never told about"
+    negative_example: "I applied for a loan but my request was rejected without any explanation"
+    negative_rationale: >-
+      No loan was actually disbursed or repaid; this is an application/eligibility
+      complaint, closer to information_request.
+
+  # D. Fraud & Safety
+  - id: scam_impersonation_report
+    family: fraud_and_safety
+    definition: User reports being contacted by someone falsely posing as company staff, usually to steal money or OTPs.
+    positive_examples:
+      - "Ek banda call kar k khud ko company ka officer bata raha tha aur OTP manga"
+      - "Someone called claiming to be from customer support asking for my PIN to 'verify' my account"
+    negative_example: "The real support agent was rude and unhelpful on the phone"
+    negative_rationale: >-
+      Describes a genuine agent interaction (poor service), not someone falsely
+      impersonating staff.
+  - id: fake_payment_screenshot
+    family: fraud_and_safety
+    definition: A seller/buyer used a forged payment screenshot to claim a transaction happened when it didn't.
+    positive_examples:
+      - "Buyer ne fake screenshot bheja payment ka, maine saman de diya lekin paisay account mein nahi aye"
+      - "Someone showed me a doctored screenshot claiming they paid, but no money ever landed in my wallet"
+    negative_example: "The buyer sent real payment but then asked for a refund after receiving the goods"
+    negative_rationale: >-
+      The payment was genuine; there's no forged screenshot or deception about the
+      transaction itself, this is a refund_request or dispute scenario.
+  - id: account_compromised
+    family: fraud_and_safety
+    definition: User's account was accessed or used by someone else without authorization.
+    positive_examples:
+      - "Mere account se paisay nikal gaye jo maine khud nahi nikale, kisi aur ne access kar liya"
+      - "Someone logged into my account and made transactions I never authorized"
+    negative_example: "My account got blocked automatically after too many failed login attempts"
+    negative_rationale: >-
+      No unauthorized access actually occurred; the account was protectively
+      blocked, likely by the provider's own security system, i.e.
+      account_blocked_frozen.
+  - id: harassment_or_abuse_via_platform
+    family: fraud_and_safety
+    definition: User reports being harassed, threatened, or abused by another party through the platform (agent, staff, or another user).
+    positive_examples:
+      - "Customer service ka banda gaali dene laga jab maine complaint ki"
+      - "A staff member threatened me over the phone when I asked about my refund"
+    negative_example: "The support agent took forever to respond and didn't solve my problem"
+    negative_rationale: >-
+      A slow/ineffective service complaint, not abusive or threatening conduct;
+      frustration is present but not harassment.
+
+  # E. Network & Service
+  - id: network_coverage_complaint
+    family: network_and_service
+    definition: User reports poor or no signal/network coverage in a specific area.
+    positive_examples:
+      - "Hamare ilaqay mein signal hi nahi aata, call drop hoti rehti hai"
+      - "No network coverage at all in my area, can't even make a phone call"
+    negative_example: "Internet is very slow even though I have full signal bars"
+    negative_rationale: >-
+      Signal/coverage is present (full bars); the complaint is about data
+      throughput, not coverage, i.e. data_speed_complaint.
+  - id: data_speed_complaint
+    family: network_and_service
+    definition: User reports slow internet/data speed despite having a connection.
+    positive_examples:
+      - "4G hone k bawajood internet bohat slow chal raha hai"
+      - "My data speed is extremely slow even on 4G, videos won't load"
+    negative_example: "There's no internet at all in my area since yesterday"
+    negative_rationale: >-
+      Describes a complete outage, not slowness; that's service_outage_report.
+  - id: service_outage_report
+    family: network_and_service
+    definition: User reports a service being completely down/unavailable, typically affecting many users at once.
+    positive_examples:
+      - "App/network 2 ghante se poori tarah down hai, koi bhi service kaam nahi kar rahi"
+      - "Everything is down since this morning, no calls, no data, nothing is working"
+    negative_example: "My phone shows no signal but my neighbor's phone works fine"
+    negative_rationale: >-
+      Looks like an isolated, device/location-specific issue rather than a broad
+      outage; closer to network_coverage_complaint.
+
+  # F. Product & Navigation
+  - id: feature_request_or_ux_complaint
+    family: product_and_navigation
+    definition: User requests a new feature or complains about the app's design, usability, or general experience (no financial loss or service failure involved).
+    positive_examples:
+      - "App ka interface bohat confusing hai, transaction history dhoondna mushkil hai"
+      - "Please add a dark mode option and make the transfer screen simpler"
+    negative_example: "The app crashed while I was in the middle of a payment and my balance got deducted"
+    negative_rationale: >-
+      An actual financial loss tied to a technical failure, not a design/usability
+      opinion; belongs in a money-movement intent instead.
+  - id: information_request
+    family: product_and_navigation
+    definition: User is asking a question — pricing, how-to, or eligibility — without reporting a problem.
+    positive_examples:
+      - "Ye package kitne din k liye hota hai aur uski price kya hai?"
+      - "How do I become eligible for a loan on this app? What are the requirements?"
+    negative_example: "I applied for a loan and it got rejected without any explanation"
+    negative_rationale: >-
+      Not a question; it reports a completed action (application) with an
+      unexplained negative outcome, closer to loan_repayment_dispute.
+
 languages:
   - urdu_script
   - roman_urdu

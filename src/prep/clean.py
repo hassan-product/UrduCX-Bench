@@ -12,6 +12,7 @@ import json
 import re
 import sys
 from collections import Counter
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -28,7 +29,38 @@ _HTML_TAG_RE = re.compile(r"<[^>]+>")
 _WHITESPACE_RE = re.compile(r"\s+")
 _WORD_RE = re.compile(r"[A-Za-z0-9\u0600-\u06FF\u0750-\u077F\uFB50-\uFDFF\uFE70-\uFEFF]+")
 
-CLEAN_FIELDS = (*REVIEW_FIELDS, "text_clean", "text_hash")
+CLEAN_FIELDS = (*REVIEW_FIELDS, "text_clean", "text_hash", "language")
+
+LANGUAGE_VALUES = ("urdu_script", "roman_urdu", "english", "code_switched")
+_ARABIC_RE = re.compile(r"[\u0600-\u06FF\u0750-\u077F\uFB50-\uFDFF\uFE70-\uFEFF]")
+_LATIN_RE = re.compile(r"[A-Za-z]")
+_ROMAN_URDU_MARKERS = {
+    "acha",
+    "aya",
+    "bohat",
+    "gaya",
+    "gayi",
+    "hai",
+    "hain",
+    "ho",
+    "kar",
+    "kiya",
+    "kya",
+    "lagta",
+    "lekin",
+    "liye",
+    "mein",
+    "mera",
+    "nahi",
+    "raha",
+    "rahi",
+    "se",
+    "wala",
+    "waly",
+    "yeh",
+    "yahan",
+}
+_TOKEN_RE = re.compile(r"[A-Za-z]+")
 
 
 def load_product_map(registry_path: Path) -> dict[tuple[str, str], str]:
@@ -64,6 +96,21 @@ def normalise_text(text: Any) -> str:
 def word_count(text: str) -> int:
     """Count Latin or Arabic letter/number tokens."""
     return len(_WORD_RE.findall(text))
+
+
+def detect_language(text: str) -> str:
+    """Classify script/register using deterministic Unicode and Roman Urdu markers."""
+    has_arabic = bool(_ARABIC_RE.search(text))
+    has_latin = bool(_LATIN_RE.search(text))
+    if has_arabic and has_latin:
+        return "code_switched"
+    if has_arabic:
+        return "urdu_script"
+
+    tokens = {token.lower() for token in _TOKEN_RE.findall(text)}
+    if tokens & _ROMAN_URDU_MARKERS:
+        return "roman_urdu"
+    return "english"
 
 
 def drop_reason(text_clean: str) -> str | None:
@@ -141,6 +188,7 @@ def clean_records(
                 "helpful_count": record.get("helpful_count"),
                 "text_clean": cleaned,
                 "text_hash": digest,
+                "language": detect_language(cleaned),
             }
         )
     return kept, drops
@@ -165,6 +213,23 @@ def print_report(input_count: int, kept: list[dict[str, Any]], drops: Counter[st
         for reason, count in drops.most_common():
             print(f"  {reason:16} {count:,}")
     by_product: Counter[str] = Counter(str(row["product_id"]) for row in kept)
+    by_language: Counter[str] = Counter(str(row["language"]) for row in kept)
+    print("Kept by language:")
+    for language, count in by_language.most_common():
+        print(f"  {language:16} {count:,}")
+    by_platform: Counter[str] = Counter(str(row["platform"]) for row in kept)
+    print("Kept by platform:")
+    for platform, count in by_platform.most_common():
+        print(f"  {platform:16} {count:,}")
+    dates = []
+    for row in kept:
+        timestamp = str(row.get("timestamp", ""))
+        try:
+            dates.append(datetime.fromisoformat(timestamp.replace("Z", "+00:00")).date())
+        except ValueError:
+            continue
+    if dates:
+        print(f"Date window   : {min(dates)} to {max(dates)}")
     print("Kept by product:")
     for product_id, count in by_product.most_common():
         print(f"  {product_id:24} {count:,}")
