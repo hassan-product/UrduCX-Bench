@@ -25,8 +25,8 @@ Full spec lives in `PROJECT_CONTEXT.md` (local-only, git-ignored — never pushe
 | Phase | Status | Summary |
 |---|---|---|
 | 0 — Repo & environment setup | **Done** | Scaffold committed and pushed |
-| 1 — Data collection | **In progress** | Source registry approved; Apple census complete; Google quotas confirmed; full Google collection is the immediate next job |
-| 2 — Cleaning & language detection | Not started | Blocked on Phase 1 |
+| 1 — Data collection | **Done** | 17 products collected; ~107.8k unique reviews; validator printed; human reviewed localhost previews |
+| 2 — Cleaning & language detection | **Next** | Deduplicate, normalise product IDs, detect language/script, write `data/interim/` |
 | 3 — Sampling & auto-labelling | Not started | Blocked on Phase 2 |
 | 4 — Human verification | Not started | Blocked on Phase 3 |
 | 5 — Benchmark task building | Not started | Blocked on Phase 4 |
@@ -256,6 +256,66 @@ with `certifi==2026.7.22` for verified TLS. All raw data stays local and is git-
   not labeled and does not increase LLM cost. More raw material improves stratification
   quality without increasing the labeling budget.
 
+#### Job 7 — Quota-aware Google scraper and full 17-product collection (complete)
+
+- Updated `src/collect/scrape_reviews.py` to read `config/collection_quotas.yaml` via
+  `load_quotas()`. Each app now stops after the first page that reaches its per-product
+  `max_reviews` cap. Hitting quota does **not** set `complete: true`, so a later quota
+  raise can resume from the stored continuation token.
+- Added `--quotas` CLI flag (default `config/collection_quotas.yaml`). Missing quota
+  file returns an empty map so older single-app runs still work.
+- Expanded `config/apps.yaml` from 5 to all 17 registry products, with explicit
+  `product_id` fields matching `source_registry.yaml`. Renamed display names `Zong` →
+  `My Zong` and `Ufone` → `UPTCL / Ufone` so new pages write the canonical IDs.
+- First sandboxed collection run returned empty pages (network blocked). Cleaned the
+  zero-review checkpoints and re-ran unsandboxed.
+- Full Google collection result (checkpoints, local-only):
+
+  | Product | Collected | Stop reason |
+  |---|---:|---|
+  | Easypaisa | 12,000 | quota |
+  | SIMOSA, JazzCash, My Telenor, My Zong | 10,000 each | quota |
+  | UPTCL / Ufone | 8,000 | quota |
+  | NayaPay, SadaPay, Tamasha, Zindigi | 6,000 each | quota |
+  | JazzCash Business, UPaisa | 5,000 each | quota |
+  | ROX | 4,000 | quota |
+  | JazzCash Retailer | 1,968 | store exhausted |
+  | DOST | 1,273 | quota (last short page) |
+  | FikrFree | 600 | quota (last short page) |
+  | Jazz Business World | 445 | quota (last short page) |
+  | **Google total** | **102,286** | |
+  | + Apple already complete | 5,483 | |
+  | **Combined unique after Phase 2 dedup (expected)** | **~107,780** | |
+
+- Combined target was ~107,500. Validator later scanned 111,169 raw records including
+  the earlier 200-review census pages; ~2,989 of those are census/scraper overlaps.
+
+#### Job 8 — Raw validator and human review (complete)
+
+- Added `src/collect/validate_raw.py`. It walks every `*.jsonl` under
+  `data/raw/reviews/` and prints: totals by platform, per-product counts, date window,
+  duplicate rate, empty-text rate, rating mix, and a coarse script mix (Arabic block vs
+  Latin vs mixed). Roman Urdu is still counted as Latin here; Phase 2 language detection
+  will split English from Roman Urdu.
+- Validation snapshot (2026-08-16):
+  - 111,169 raw records (Google 105,686 including census pages; Apple 5,483).
+  - Empty text: 0.
+  - Duplicates: 2,989 (2.7%), almost all census page vs later quota scrape of the same
+    newest reviews. Phase 2 will drop these on `(platform, review_id)`.
+  - Product-id split on two apps: older pages used `zong` / `ufone` from the pre-rename
+    `apps.yaml` names; census pages used `my_zong` / `uptcl`. `platform_app_id` is still
+    the correct join key. Phase 2 remaps both to the registry IDs.
+  - Date span: 2015 (Tamasha Apple) through 2026-08-15. Quota-capped Google apps are
+    newest-first by design, so their observed window is recent months only.
+  - Script: ~98–100% Latin (includes Roman Urdu); 0–2.5% Urdu script. Expected.
+- Localhost previews refreshed for human review:
+  - Registry: `http://127.0.0.1:8766`
+  - Census: `http://127.0.0.1:8767`
+  - Review sample: `http://127.0.0.1:8765` (16,045 reviews: first five pages × 17 apps).
+    The full 107k corpus stays on disk; a 107k-row HTML page would freeze the browser.
+- Code committed and pushed as `9cfae77`. Raw review files were not committed.
+- Suite: 28 tests, `ruff check` clean.
+
 ---
 
 ## 4. Key decisions and their reasoning
@@ -297,6 +357,14 @@ with `certifi==2026.7.22` for verified TLS. All raw data stays local and is git-
 10. **Apple collection is already complete.** Apple's public access ceiling of 500 reviews
     per listing is reached by collecting all 10 RSS pages. There is no further Apple
     scraping to run; the 5,483 reviews collected are the complete publicly available set.
+11. **Empty Google pages mean the store is exhausted, even if a continuation token is
+    still present.** JazzCash Retailer returned empty pages with live tokens after 1,968
+    real reviews. The collector now marks `complete: true` and stops instead of looping.
+12. **Browser previews are inspection windows, not the corpus.** Full collection lives in
+    `data/raw/reviews/` (git-ignored). Preview HTML is a sampled slice for human review.
+13. **`product_id` written at scrape time follows `apps.yaml`.** Census used the registry;
+    the first five-app quota run used display-name fallbacks (`zong`, `ufone`). Phase 2
+    must remap via `platform_app_id`, not trust every stored `product_id` blindly.
 
 ---
 
@@ -352,39 +420,43 @@ with `certifi==2026.7.22` for verified TLS. All raw data stays local and is git-
   credential-helper IPC pipe. Resolved by retrying with `requestUnsandboxedExecution`
   for server commands and Git pushes.
 
+### Issue 8 — Sandboxed Google collection wrote empty pages (Phase 1)
+- **What happened:** The first full Google run inside the sandbox printed
+  `SIMOSA: wrote 0 reviews` on every page. HTTPS to Play was blocked, but the library
+  returned empty lists instead of raising, so the collector treated them as valid pages.
+- **Resolution:** Killed the run, deleted the zero-review checkpoints and page files,
+  re-ran unsandboxed. Added the empty-page exhaustion guard in the same session so a
+  later real empty page cannot loop forever.
+
+### Issue 9 — Google API returns empty pages with live continuation tokens (Phase 1)
+- **What happened:** JazzCash Retailer collected 1,968 real reviews, then kept returning
+  empty pages with a non-null token. The collector looped until it was killed.
+- **Resolution:** `collect_app` now treats an empty page as store exhaustion, writes
+  `complete: true`, and stops. Covered by `test_collect_app_marks_complete_on_empty_page`.
+  Corrupted Retailer files from the loop were deleted and the listing was re-collected.
+
 ---
 
 ## 6. Work pending / next steps
 
-**Immediate next action: run full Google collection against the confirmed 100k quotas.**
+**Immediate next action: start Phase 2 cleaning.**
 
-Apple collection is already complete (5,483 reviews). The next job is:
+Phase 1 collection and validation are done. Raw data stays local. Next build order:
 
-```bash
-# Full Google collection — ~100,000 reviews across 17 products
-# Quotas per product are in config/collection_quotas.yaml
-# Expected wall-clock time: 8–10 minutes at 1 req/sec × 200 reviews/page
-python -m src.collect.scrape_reviews   # reads config/apps.yaml; needs updating to read quotas
-```
+1. Deduplicate raw JSONL on `(platform, review_id)` — drop the ~2,989 census overlaps.
+2. Normalise `product_id` via `platform_app_id` → registry map (`zong`→`my_zong`,
+   `ufone`→`uptcl`, and any other display-name leftovers).
+3. Detect language/script per review: `urdu_script`, `roman_urdu`, `english`, `mixed`.
+   The validator's Arabic-block check is not enough; Roman Urdu is Latin script.
+4. Write a single clean dataset to `data/interim/` (Parquet preferred).
+5. Print a Phase 2 validation report (unique counts, date span, language mix).
+6. Commit code only. Interim data stays git-ignored.
 
-**Before running full collection, the scraper must be updated to read
-`config/collection_quotas.yaml` and respect per-product page caps.**
-The current `scrape_reviews.py` takes a single `--max-pages-per-app` flag; it needs a
-per-product quota path so SIMOSA stops at 10,000 reviews while DOST collects its 1,229.
-
-**Remaining Phase 1 build order:**
-1. Update `scrape_reviews.py` to read per-product page quotas from
-   `config/collection_quotas.yaml` and stop each app when its quota is reached.
-2. Run full Google collection. Show progress on localhost; stop for human review when done.
-3. Add and run `src/collect/validate_raw.py` — counts per product, date coverage,
-   rating distribution, duplicate rate, empty-text rate, language-script distribution.
-4. Commit code only. Raw data never enters git.
-5. Human reviews the validation report and confirms Phase 1 acceptance.
-
-**Phase 1 acceptance criteria (from `PROJECT_CONTEXT.md`):**
-- ≥40,000 reviews collected across ≥4 apps spanning ≥24 months (target is now 107,500).
-- Validation report printed.
-- No PII fields present in the stored schema (already verified for all 8,883 census records).
+**Phase 1 acceptance criteria (from `PROJECT_CONTEXT.md`) — met:**
+- ≥40,000 reviews across ≥4 apps spanning ≥24 months: ~107,780 unique across 17
+  products, 2015–2026.
+- Validation report printed (`python -m src.collect.validate_raw`).
+- No PII fields in the stored schema.
 
 **Open questions for later phases:**
 1. Accept the 24-intent taxonomy as-is, or revise after reading a 200-review sample?
@@ -398,7 +470,7 @@ per-product quota path so SIMOSA stops at 10,000 reviews while DOST collects its
 
 ## 7. Environment / how to resume locally
 
-Repo: `hassan-product/UrduCX-Bench`, branch `main`. Latest pushed commit: `33ea30a`.
+Repo: `hassan-product/UrduCX-Bench`, branch `main`. Latest code commit: `9cfae77`.
 
 ```bash
 git clone https://github.com/hassan-product/UrduCX-Bench.git
@@ -407,7 +479,7 @@ python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 pip install -e .
 pre-commit install
-ruff check . && pytest   # should pass — currently 24 tests
+ruff check . && pytest   # should pass — currently 28 tests
 cp .env.example .env     # fill in real keys only when Phase 3/6 needs them
 ```
 
@@ -416,7 +488,7 @@ new machine. Raw data (`data/raw/`) is also local-only and git-ignored.
 
 **Local browser preview servers (run manually when needed):**
 ```bash
-# Review sample (20 SIMOSA reviews — engineering proof of concept only)
+# Review sample (local HTML slice; regenerate before serving — not the full 107k corpus)
 python -m http.server 8765 --bind 127.0.0.1 --directory data/raw/sample_preview
 
 # Source registry (17 products, 33 listings, all approved)
@@ -431,6 +503,7 @@ python -m http.server 8767 --bind 127.0.0.1 --directory data/raw/availability_ce
 python -m src.collect.render_source_registry
 python -m src.collect.render_availability_census \
   --google-metadata data/raw/availability_census/google_metadata.json
+python -m src.collect.validate_raw
 ```
 
 ---
@@ -460,3 +533,4 @@ When the human types **`wrap`** in a chat session:
 | 2026-08-14 | `157d08c` | Created `PROGRESS_LOG.md` as project memory file |
 | 2026-08-14 | `9f473af` | Phase 1 Job 1–2: app resolver, Google scraper, review preview, tests |
 | 2026-08-15 | `33ea30a` | Phase 1 Job 3–6: dual-platform registry, Apple collector, census, 100k quota config |
+| 2026-08-16 | `9cfae77` | Phase 1 Job 7–8: quotas, 17-app collection, empty-page guard, `validate_raw` |
