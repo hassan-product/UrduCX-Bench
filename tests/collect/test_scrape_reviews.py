@@ -15,6 +15,7 @@ from src.collect.scrape_reviews import (
     deserialize_token,
     fetch_page,
     load_apps,
+    load_quotas,
     serialize_review,
     serialize_token,
 )
@@ -69,7 +70,9 @@ def test_continuation_token_round_trip() -> None:
 def test_collect_app_writes_page_before_resumable_checkpoint(tmp_path: Path) -> None:
     calls: list[dict[str, Any]] = []
 
-    def fake_reviews(app_id: str, **kwargs: Any) -> tuple[list[dict[str, Any]], _ContinuationToken]:
+    def fake_reviews(
+        app_id: str, **kwargs: Any
+    ) -> tuple[list[dict[str, Any]], _ContinuationToken]:
         calls.append({"app_id": app_id, **kwargs})
         return ([{"reviewId": "one", "content": "Theek nahin", "score": 1}], make_token())
 
@@ -89,6 +92,78 @@ def test_collect_app_writes_page_before_resumable_checkpoint(tmp_path: Path) -> 
     assert checkpoint["next_page"] == 2
     assert checkpoint["complete"] is False
     assert calls[0]["continuation_token"] is None
+
+
+def test_load_quotas_parses_google_quotas(tmp_path: Path) -> None:
+    config = tmp_path / "collection_quotas.yaml"
+    config.write_text(
+        "google_quotas:\n  com.jazz.jazzworld: 10000\n  com.mobilinkbank: 1229\n",
+        encoding="utf-8",
+    )
+
+    quotas = load_quotas(config)
+
+    assert quotas == {"com.jazz.jazzworld": 10000, "com.mobilinkbank": 1229}
+
+
+def test_load_quotas_returns_empty_for_missing_file(tmp_path: Path) -> None:
+    assert load_quotas(tmp_path / "nonexistent.yaml") == {}
+
+
+def test_collect_app_marks_complete_on_empty_page(tmp_path: Path) -> None:
+    call_count = 0
+
+    def fake_reviews(
+        app_id: str, **kwargs: Any
+    ) -> tuple[list[dict[str, Any]], _ContinuationToken | None]:
+        nonlocal call_count
+        call_count += 1
+        if call_count == 1:
+            return ([{"reviewId": "r1", "content": "ok", "score": 4}], make_token())
+        return ([], make_token())  # empty page with live token — store exhausted
+
+    checkpoint = collect_app(
+        {"name": "SIMOSA", "app_id": "com.jazz.jazzworld"},
+        output_dir=tmp_path / "reviews",
+        checkpoint_dir=tmp_path / "checkpoints",
+        count=1,
+        max_pages=None,
+        pacer=RequestPacer(1.0, sleep_fn=lambda _: None, clock_fn=lambda: 0.0),
+        reviews_fn=fake_reviews,
+    )
+
+    assert checkpoint["complete"] is True
+    assert checkpoint["reviews_collected"] == 1
+    assert call_count == 2
+
+
+def test_collect_app_stops_at_max_reviews(tmp_path: Path) -> None:
+    page_count = 0
+
+    def fake_reviews(
+        app_id: str, **kwargs: Any
+    ) -> tuple[list[dict[str, Any]], _ContinuationToken]:
+        nonlocal page_count
+        page_count += 1
+        return (
+            [{"reviewId": f"r{page_count}", "content": "ok", "score": 3}],
+            make_token(f"tok{page_count}"),
+        )
+
+    checkpoint = collect_app(
+        {"name": "SIMOSA", "app_id": "com.jazz.jazzworld"},
+        output_dir=tmp_path / "reviews",
+        checkpoint_dir=tmp_path / "checkpoints",
+        count=1,
+        max_pages=None,
+        max_reviews=2,
+        pacer=RequestPacer(1.0, sleep_fn=lambda _: None, clock_fn=lambda: 0.0),
+        reviews_fn=fake_reviews,
+    )
+
+    assert checkpoint["reviews_collected"] == 2
+    assert page_count == 2
+    assert checkpoint["complete"] is False
 
 
 def test_fetch_page_retries_with_exponential_backoff() -> None:

@@ -21,9 +21,10 @@ from google_play_scraper.features.reviews import _ContinuationToken
 
 from src.collect.review_schema import REVIEW_FIELDS, review_record
 
-__all__ = ["REVIEW_FIELDS"]
+__all__ = ["REVIEW_FIELDS", "load_quotas"]
 
 DEFAULT_APPS_CONFIG = Path("config/apps.yaml")
+DEFAULT_QUOTAS_CONFIG = Path("config/collection_quotas.yaml")
 DEFAULT_OUTPUT_DIR = Path("data/raw/reviews")
 DEFAULT_CHECKPOINT_DIR = Path("data/raw/checkpoints")
 MIN_REQUEST_INTERVAL = 1.0
@@ -83,6 +84,17 @@ def load_apps(config_path: Path, selected_names: set[str] | None = None) -> list
     if unconfirmed:
         raise ValueError(f"Human confirmation required for: {', '.join(unconfirmed)}")
     return selected
+
+
+def load_quotas(config_path: Path) -> dict[str, int]:
+    """Load per-product Google review quotas, keyed by platform app ID."""
+    if not config_path.exists():
+        return {}
+    payload = yaml.safe_load(config_path.read_text(encoding="utf-8")) or {}
+    quotas = payload.get("google_quotas", {})
+    if not isinstance(quotas, dict):
+        raise ValueError(f"google_quotas in {config_path} must be a mapping")
+    return {str(k): int(v) for k, v in quotas.items()}
 
 
 def serialize_review(
@@ -197,6 +209,7 @@ def collect_app(
     max_pages: int | None,
     pacer: RequestPacer,
     reviews_fn: ReviewsFunction = reviews,
+    max_reviews: int | None = None,
 ) -> dict[str, Any]:
     """Resume collection for one app and persist each fetched page before its checkpoint."""
     app_id = str(app["app_id"])
@@ -223,6 +236,12 @@ def collect_app(
             pacer=pacer,
             reviews_fn=reviews_fn,
         )
+        if not raw_reviews:
+            # Store exhausted — API returns empty pages with live tokens past end of content.
+            checkpoint["complete"] = True
+            write_checkpoint(checkpoint_path, checkpoint)
+            print(f"{app['name']}: store exhausted at {checkpoint['reviews_collected']} reviews")
+            break
         product_id = str(app.get("product_id", app["name"]).casefold().replace(" ", "_"))
         page = [serialize_review(review, app_id, product_id) for review in raw_reviews]
         page_path = output_dir / app_id / f"page_{checkpoint['next_page']:06d}.jsonl"
@@ -240,6 +259,9 @@ def collect_app(
         )
         if next_token is None:
             break
+        if max_reviews is not None and checkpoint["reviews_collected"] >= max_reviews:
+            print(f"{app['name']}: quota of {max_reviews} reached")
+            break
     return checkpoint
 
 
@@ -254,6 +276,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--checkpoint-dir", type=Path, default=DEFAULT_CHECKPOINT_DIR)
     parser.add_argument("--count", type=int, default=100, choices=range(1, 201), metavar="1-200")
     parser.add_argument("--max-pages-per-app", type=int)
+    parser.add_argument("--quotas", type=Path, default=DEFAULT_QUOTAS_CONFIG)
     parser.add_argument("--request-interval", type=float, default=MIN_REQUEST_INTERVAL)
     return parser.parse_args()
 
@@ -262,14 +285,17 @@ def main() -> None:
     """Collect selected apps sequentially so one global rate limit is enforced."""
     args = parse_args()
     apps = load_apps(args.config, set(args.apps) if args.apps else None)
+    quotas = load_quotas(args.quotas)
     pacer = RequestPacer(args.request_interval)
     for app in apps:
+        max_reviews = quotas.get(str(app["app_id"]))
         collect_app(
             app,
             output_dir=args.output_dir,
             checkpoint_dir=args.checkpoint_dir,
             count=args.count,
             max_pages=args.max_pages_per_app,
+            max_reviews=max_reviews,
             pacer=pacer,
         )
 

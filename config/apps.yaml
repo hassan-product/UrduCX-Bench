@@ -1,31 +1,120 @@
 apps:
 - name: SIMOSA
+  product_id: simosa
   app_id: com.jazz.jazzworld
   store_title: SIMOSA - Jazz World
   developer: Jazz Digital Pakistan
   query: SIMOSA
   confirmed: true
 - name: JazzCash
+  product_id: jazzcash
   app_id: com.techlogix.mobilinkcustomer
   store_title: JazzCash - Your Mobile Account
   developer: JazzCash
   query: JazzCash
   confirmed: true
 - name: Easypaisa
+  product_id: easypaisa
   app_id: pk.com.telenor.phoenix
   store_title: easypaisa – a digital bank
   developer: Easypaisa Bank Limited
   query: Easypaisa
   confirmed: true
-- name: Zong
+- name: My Zong
+  product_id: my_zong
   app_id: com.zong.customercare
   store_title: My Zong
   developer: CMPak - Zong
   query: Zong Pakistan
   confirmed: true
-- name: Ufone
+- name: UPTCL / Ufone
+  product_id: uptcl
   app_id: com.ufoneselfcare
   store_title: UPTCL– App Up Your Life!
   developer: Pak Telecom Mobile Limited
   query: Ufone Pakistan
+  confirmed: true
+- name: My Telenor
+  product_id: my_telenor
+  app_id: com.telenor.pakistan.mytelenor
+  store_title: My Telenor
+  developer: Telenor-Pakistan
+  query: My Telenor Pakistan
+  confirmed: true
+- name: UPaisa
+  product_id: upaisa
+  app_id: pk.upaisa.com
+  store_title: UPaisa – Digital Wallet
+  developer: UPaisa
+  query: UPaisa Pakistan
+  confirmed: true
+- name: DOST
+  product_id: dost
+  app_id: com.mobilinkbank
+  store_title: DOST – Powered by MMBL
+  developer: Mobilink Microfinance Bank Limited
+  query: DOST Mobilink Bank
+  confirmed: true
+- name: SadaPay
+  product_id: sadapay
+  app_id: com.sadapay.app
+  store_title: 'SadaPay: Money made simple'
+  developer: SadaPay
+  query: SadaPay Pakistan
+  confirmed: true
+- name: NayaPay
+  product_id: nayapay
+  app_id: com.nayapay.app
+  store_title: NayaPay
+  developer: NayaPay
+  query: NayaPay Pakistan
+  confirmed: true
+- name: Zindigi
+  product_id: zindigi
+  app_id: com.wallet.zindigi
+  store_title: Zindigi - All in One Finance
+  developer: JS Bank Limited
+  query: Zindigi Pakistan
+  confirmed: true
+- name: ROX
+  product_id: rox
+  app_id: com.jazz.rox
+  store_title: ROX
+  developer: Jazz Digital Pakistan
+  query: ROX Jazz Pakistan
+  confirmed: true
+- name: Jazz Business World
+  product_id: jazz_business_world
+  app_id: com.jazz.businessworld
+  store_title: Jazz Business World
+  developer: Jazz Digital Pakistan
+  query: Jazz Business World Pakistan
+  confirmed: true
+- name: JazzCash Business
+  product_id: jazzcash_business
+  app_id: com.ibm.jazzcashmerchant
+  store_title: JazzCash Business
+  developer: JazzCash
+  query: JazzCash Business merchant
+  confirmed: true
+- name: JazzCash Retailer
+  product_id: jazzcash_retailer
+  app_id: com.retailerapp.mobilink
+  store_title: JazzCash Retailer
+  developer: JazzCash
+  query: JazzCash Retailer agent
+  confirmed: true
+- name: FikrFree
+  product_id: fikrfree
+  app_id: com.fikrfree.android
+  store_title: FikrFree–Insurance Marketplace
+  developer: Jazz Digital Pakistan
+  query: FikrFree insurance Pakistan
+  confirmed: true
+- name: Tamasha
+  product_id: tamasha
+  app_id: com.spbtv.mobilinktv
+  store_title: 'Tamasha: Live Cricket, Movies'
+  developer: Beyond-Digital
+  query: Tamasha Jazz Pakistan
   confirmed: true
