@@ -586,4 +586,4 @@ When the human types **`wrap`** in a chat session:
 | 2026-08-14 | `9f473af` | Phase 1 Job 1–2: app resolver, Google scraper, review preview, tests |
 | 2026-08-15 | `33ea30a` | Phase 1 Job 3–6: dual-platform registry, Apple collector, census, 100k quota config |
 | 2026-08-16 | `9cfae77` | Phase 1 Job 7–8: quotas, 17-app collection, empty-page guard, `validate_raw` |
-| 2026-08-16 | pending | Phase 2 preview: cleaned-schema contract, bounded review preview, dropdown-with-checkboxes product filter, focused tests |
+| 2026-08-16 | `cb7c09e` | Phase 2 preview: cleaned-schema contract, bounded review preview, dropdown-with-checkboxes product filter, focused tests |
