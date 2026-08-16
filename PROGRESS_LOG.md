@@ -741,3 +741,4 @@ When the human types **`wrap`** in a chat session:
 | 2026-08-15 | `33ea30a` | Phase 1 Job 3–6: dual-platform registry, Apple collector, census, 100k quota config |
 | 2026-08-16 | `9cfae77` | Phase 1 Job 7–8: quotas, 17-app collection, empty-page guard, `validate_raw` |
 | 2026-08-16 | `cb7c09e` | Phase 2 preview: cleaned-schema contract, bounded review preview, dropdown-with-checkboxes product filter, focused tests |
+| 2026-08-17 | `f476db5` | Phase 3 Steps 1\u20132: stratified sampler, human-authored 24-intent taxonomy, committed pending Phase 2 language-detection work |
