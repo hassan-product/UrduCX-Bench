@@ -225,6 +225,7 @@ outputs/cache/
 .vscode/
 .DS_Store
 PROJECT_CONTEXT.md
+PROJECT_CONTEXT_V2.md
 AGENTS.md
 CLAUDE.md
 .claude/
