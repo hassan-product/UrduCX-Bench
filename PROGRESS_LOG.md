@@ -26,8 +26,8 @@ Full spec lives in `PROJECT_CONTEXT.md` (local-only, git-ignored — never pushe
 |---|---|---|
 | 0 — Repo & environment setup | **Done** | Scaffold committed and pushed |
 | 1 — Data collection | **Done** | 17 products collected; ~107.8k unique reviews; validator printed; human reviewed localhost previews |
-| 2 — Cleaning & language detection | **In progress** | Cleaning, product-ID remapping, deduplication, and deterministic language detection are implemented and tested (54,519 kept records); PII scrubber (`scrub_pii.py`, step 19) is now **built and tested** but has **not yet been run against the real local sample** (this environment has no `data/` contents — see Job 15) |
-| 3 — Sampling & auto-labelling | **In progress** | Stratified sampler (9,000 of 54,519) and the full 24-intent human-authored taxonomy are complete and tested; PII scrubber built (unblocks this phase); `auto_label.py` not yet built; blocked on running the scrubber over the real sample locally and on the human adding an API key locally |
+| 2 — Cleaning & language detection | **In progress** | Cleaning, product-ID remapping, deduplication, and deterministic language detection are implemented and tested (54,519 kept records); PII scrubber (`scrub_pii.py`, step 19) is **built and tested**; the human confirmed the local `git pull` and scrubber tests pass on their machine |
+| 3 — Sampling & auto-labelling | **In progress** | Stratified sampler (9,000 of 54,519), the full 24-intent human-authored taxonomy, the PII scrubber, and `src/label/auto_label.py` (Job 16) are all built and tested; blocked only on the human running the scrubber over the real local sample and adding an `ANTHROPIC_API_KEY` before a real labelling run |
 | 4 — Human verification | Not started | Blocked on Phase 3 |
 | 5 — Benchmark task building | Not started | Blocked on Phase 4 |
 | 6 — Scoring harness | Not started | Blocked on Phase 5 |
@@ -483,6 +483,55 @@ with `certifi==2026.7.22` for verified TLS. All raw data stays local and is git-
   on the human's local machine where Phase 1–3 were actually run). The human needs to
   pull this commit locally and run `python -m src.prep.scrub_pii` there before
   `auto_label.py` can be built and exercised against real text.
+- Human pulled this commit locally, ran `pytest tests/prep/test_scrub_pii.py -q`, and
+  confirmed all 16 tests pass on their machine, closing out the "never actually run
+  locally" risk for the scrubber code itself (the real 9,000-item sample still needs to
+  be scrubbed before labelling).
+
+#### Job 16 — Phase 3 Step 3: auto-labelling pipeline (`src/label/auto_label.py`)
+
+- Added the official `anthropic` SDK (`anthropic==0.122.0`) to `requirements.txt`,
+  installed via the same `certifi`-backed `--trusted-host`/`--cert` workaround documented
+  in Issue 5 for this macOS Python 3.13 environment.
+- Wrote `build_system_prompt()`: renders every taxonomy intent id + definition plus the
+  allowed `language` and `severity` values into one instruction prompt, so the prompt
+  always mirrors whatever `config/taxonomy.yaml` currently contains rather than
+  duplicating intent text in code.
+- Wrote `parse_label_response()`: parses the model's JSON reply and requires all five
+  fields (`intent`, `language`, `severity`, `confidence`, `rationale`); a response missing
+  any field raises rather than silently writing a partial label.
+- Wrote `call_model()`: takes an injected `create_fn` (so tests never make a real network
+  call) and an injected `sleep_fn`, retrying up to 5 attempts with the same exponential
+  backoff shape (2, 4, 8, 16 seconds) used by the Phase 1 scraper on `RateLimitError`/
+  `APIStatusError`, then raising if every attempt fails.
+- Wrote a content-hash cache (`content_hash()`, `load_cached_label()`,
+  `write_cached_label()`): every label response is keyed by the SHA-256 of
+  `text_scrubbed` and written atomically (`.tmp` then `replace()`, matching the Phase 1
+  scraper's atomic-write convention). `label_records()` checks the cache before ever
+  calling the model, so an interrupted run resumes for free and a full re-run of an
+  already-labelled sample costs ~$0 — this satisfies the Phase 3 cache-hit acceptance bar
+  ahead of the real run.
+- Wrote `label_records()`: reuses a `RequestPacer` (same shape as the Phase 1 scraper's)
+  to pace live calls, merges each label onto its source record as `label_intent`,
+  `label_language`, `label_severity`, `label_confidence`, `label_rationale` (prefixed so
+  the LLM's own language guess never collides with Phase 2's deterministic `language`
+  field), and returns running spend counters (`input_tokens`, `output_tokens`,
+  `cache_hits`, `live_calls`).
+- Wrote `estimate_spend_usd()` and `print_report()` using the $1/$5 per-MTok input/output
+  pricing already recorded in decision 17, so a run prints cache hits, live calls, token
+  totals, and an estimated dollar cost without needing to check Anthropic's dashboard.
+- CLI (`python -m src.label.auto_label`) loads `.env` for `ANTHROPIC_API_KEY`, refuses to
+  run without it, reads the scrubbed sample's `text_scrubbed` field (never `text` or
+  `text_clean`), and supports `--limit` for a small paid smoke-test run before labelling
+  the full 9,000 items.
+- TDD: 12 focused tests using fake `create_fn`/`sleep_fn` stubs and real
+  `httpx.Response`-backed `RateLimitError` instances — cache hit/miss paths, retry then
+  succeed, retry exhaustion raises, cache roundtrip, spend accounting, and `--limit`
+  truncation. No test calls the real Anthropic API.
+- Full suite after this step: 79 tests passing, `ruff check .` clean.
+- **Not yet done:** an actual paid labelling run. That requires the human's local
+  `ANTHROPIC_API_KEY` in `.env` and the scrubbed 9,000-item sample on their machine;
+  recommended first step locally is a small `--limit` smoke test before the full run.
 
 ---
 
@@ -558,6 +607,14 @@ with `certifi==2026.7.22` for verified TLS. All raw data stays local and is git-
   Console credit (not a GitHub Copilot subscription, which does not expose a portable API
   key for use in standalone scripts). The key goes into a local, git-ignored `.env` file
   per the existing `.env.example` convention; it is never pasted into chat or committed.
+19. **`auto_label.py` injects the model call and the sleep function rather than taking an
+  `Anthropic` client directly.** This mirrors the Phase 1 scraper's `RequestPacer`/
+  `reviews_fn` injection pattern and means the full retry/backoff/cache logic has real
+  unit test coverage without any test making a network call or sleeping for real.
+20. **Label fields are written with a `label_` prefix.** The LLM's own `language` guess is
+  stored as `label_language`, distinct from Phase 2's deterministic `language` field —
+  the two can disagree, and comparing them is useful signal, so neither is allowed to
+  silently overwrite the other.
 
 ---
 
@@ -651,29 +708,34 @@ with `certifi==2026.7.22` for verified TLS. All raw data stays local and is git-
 
 ## 6. Work pending / next steps
 
-**Immediate next action: run the PII scrubber locally, then build `auto_label.py`.**
+**Immediate next action: run the scrubber and `auto_label.py` locally against the real sample.**
 
-`src/prep/scrub_pii.py` is now built and tested (Job 15). Recommended order from here:
+`src/prep/scrub_pii.py` (Job 15) and `src/label/auto_label.py` (Job 16) are both built
+and tested. Recommended order from here:
 
 1. ~~Write `src/prep/scrub_pii.py`~~ **Done.** Regex-redacts phone numbers, CNIC-shaped
    numbers, email addresses, and account numbers, replacing each with a typed
-   placeholder (`<PHONE>`, `<CNIC>`, `<ACCOUNT>`, `<EMAIL>`). 16 unit tests covering
-   realistic cases pass. **Still to do:** the human runs
-   `python -m src.prep.scrub_pii` locally over `reviews_phase3_sample.jsonl` — this dev
-   container has no local `data/` contents to run it against.
-2. Human adds their own `ANTHROPIC_API_KEY` to a local, git-ignored `.env` (already
-   confirmed: using existing Anthropic Console credit, not a Copilot-provided key).
-3. Write `src/label/auto_label.py`: send each record's `text_scrubbed` field from the
-   scrubbed sample to `claude-haiku-4-5` with the approved taxonomy, request structured
-   JSON output (intent, language, severity, confidence, one-sentence rationale), cache
-   every response to disk keyed by content hash, batch requests, handle rate limits,
-   resume cleanly after interruption, and log cumulative spend as it runs.
-4. Run auto-labelling on the 9,000-item sample. Estimated cost with Haiku 4.5: roughly
-   $15–33, based on Anthropic's own published per-ticket cost example scaled to this
-   volume, likely lower given caching and shorter per-item text than that example.
-5. Write `src/label/label_stats.py`: per-intent counts, confidence distribution, flag any
+   placeholder (`<PHONE>`, `<CNIC>`, `<ACCOUNT>`, `<EMAIL>`). 16 unit tests pass, and the
+   human confirmed they pass locally too.
+2. Human runs `python -m src.prep.scrub_pii` locally over
+   `data/interim/reviews_phase3_sample.jsonl` to produce
+   `data/interim/reviews_phase3_sample_scrubbed.jsonl` — not yet done.
+3. Human adds their own `ANTHROPIC_API_KEY` to a local, git-ignored `.env` (already
+   confirmed: using existing Anthropic Console credit, not a Copilot-provided key) —
+   not yet done.
+4. ~~Write `src/label/auto_label.py`~~ **Done (Job 16).** Sends each `text_scrubbed`
+   review to `claude-haiku-4-5` with the approved taxonomy, requests structured JSON
+   output (intent, language, severity, confidence, one-sentence rationale), caches every
+   response to disk keyed by content hash, paces requests, retries with backoff on rate
+   limits, resumes cleanly after interruption, and logs cumulative token spend. 12 tests
+   pass with no real network calls.
+5. Run auto-labelling on the 9,000-item sample — recommended: a small `--limit` smoke
+   test first, then the full run. Estimated cost with Haiku 4.5: roughly $15–33, based on
+   Anthropic's own published per-ticket cost example scaled to this volume, likely lower
+   given caching and shorter per-item text than that example. **Not yet run.**
+6. Write `src/label/label_stats.py`: per-intent counts, confidence distribution, flag any
    intent with fewer than 30 examples.
-6. Re-sample and top up any starved intents before moving to Phase 4.
+7. Re-sample and top up any starved intents before moving to Phase 4.
 
 **Phase 1 acceptance criteria (from `PROJECT_CONTEXT.md`) — met:**
 - ≥40,000 reviews across ≥4 apps spanning ≥24 months: ~107,780 unique across 17
@@ -688,10 +750,11 @@ with `certifi==2026.7.22` for verified TLS. All raw data stays local and is git-
   example per intent: **done** (all 24 intents, human-approved batch by batch).
 - PII scrubber built and tested, ready to run over the sample: **done** (not yet run
   against real local data — see Job 15).
-- Auto-labelling with cached, resumable, spend-logged LLM calls: **not started**
-  (blocked on running the scrubber locally and adding an API key).
+- Auto-labelling pipeline (`auto_label.py`) with caching, retries, resume, and spend
+  logging: **built and tested (Job 16)**; **no real labelling run has happened yet** —
+  blocked only on the human running the scrubber locally and adding an API key.
 - Every intent with ≥30 examples, spend under budget, cache hit-rate verified on re-run:
-  **not started**.
+  **not started** (depends on the real run above).
 
 **Open questions for later phases:**
 1. ~~Accept the 24-intent taxonomy as-is, or revise after reading a 200-review sample?~~
@@ -716,7 +779,7 @@ python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 pip install -e .
 pre-commit install
-ruff check . && pytest   # should pass — currently 67 tests
+ruff check . && pytest   # should pass — currently 79 tests
 cp .env.example .env     # fill in real keys only when Phase 3/6 needs them
 ```
 
@@ -774,4 +837,6 @@ When the human types **`wrap`** in a chat session:
 | 2026-08-15 | `33ea30a` | Phase 1 Job 3–6: dual-platform registry, Apple collector, census, 100k quota config |
 | 2026-08-16 | `9cfae77` | Phase 1 Job 7–8: quotas, 17-app collection, empty-page guard, `validate_raw` |
 | 2026-08-16 | `cb7c09e` | Phase 2 preview: cleaned-schema contract, bounded review preview, dropdown-with-checkboxes product filter, focused tests |
-| 2026-08-17 | `f476db5` | Phase 3 Steps 1\u20132: stratified sampler, human-authored 24-intent taxonomy, committed pending Phase 2 language-detection work || 2026-08-17 | *(pending this commit)* | Phase 2 Job 15: PII scrubber (`src/prep/scrub_pii.py`), 16 tests; not yet run against real local data |
+| 2026-08-17 | `f476db5` | Phase 3 Steps 1–2: stratified sampler, human-authored 24-intent taxonomy, committed pending Phase 2 language-detection work |
+| 2026-08-17 | `b51bf9b` | Phase 2 Job 15: PII scrubber (`src/prep/scrub_pii.py`), 16 tests; not yet run against real local data |
+| 2026-08-18 | *(pending this commit)* | Phase 3 Job 16: auto-labelling pipeline (`src/label/auto_label.py`), `anthropic` dependency added, 12 tests; not yet run against real local data |
