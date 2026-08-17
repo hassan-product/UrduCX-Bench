@@ -26,8 +26,8 @@ Full spec lives in `PROJECT_CONTEXT.md` (local-only, git-ignored — never pushe
 |---|---|---|
 | 0 — Repo & environment setup | **Done** | Scaffold committed and pushed |
 | 1 — Data collection | **Done** | 17 products collected; ~107.8k unique reviews; validator printed; human reviewed localhost previews |
-| 2 — Cleaning & language detection | **In progress** | Cleaning, product-ID remapping, deduplication, and deterministic language detection are implemented and tested (54,519 kept records); PII scrubber (`scrub_pii.py`, step 19) is **not yet built** — required before any review text leaves the local environment |
-| 3 — Sampling & auto-labelling | **In progress** | Stratified sampler (9,000 of 54,519) and the full 24-intent human-authored taxonomy are complete and tested; `auto_label.py` not yet built; blocked on the Phase 2 PII scrubber and on the human adding an API key locally |
+| 2 — Cleaning & language detection | **In progress** | Cleaning, product-ID remapping, deduplication, and deterministic language detection are implemented and tested (54,519 kept records); PII scrubber (`scrub_pii.py`, step 19) is now **built and tested** but has **not yet been run against the real local sample** (this environment has no `data/` contents — see Job 15) |
+| 3 — Sampling & auto-labelling | **In progress** | Stratified sampler (9,000 of 54,519) and the full 24-intent human-authored taxonomy are complete and tested; PII scrubber built (unblocks this phase); `auto_label.py` not yet built; blocked on running the scrubber over the real sample locally and on the human adding an API key locally |
 | 4 — Human verification | Not started | Blocked on Phase 3 |
 | 5 — Benchmark task building | Not started | Blocked on Phase 4 |
 | 6 — Scoring harness | Not started | Blocked on Phase 5 |
@@ -152,7 +152,7 @@ with `certifi==2026.7.22` for verified TLS. All raw data stays local and is git-
   UPaisa, DOST/Mobilink Bank, SadaPay, NayaPay, Zindigi. These cover the primary
   telecom self-care, consumer wallet, and digital banking verticals that are central to
   the benchmark's problem statement.
-- **Adjacent (6 products):** ROX (youth telecom), Jazz Business World (enterprise), 
+- **Adjacent (6 products):** ROX (youth telecom), Jazz Business World (enterprise),
   JazzCash Business (merchant wallet), JazzCash Retailer (agent), FikrFree (insurance),
   Tamasha (entertainment). Included to broaden language register and complaint-type
   diversity, but not counted toward the core acceptance criteria.
@@ -454,6 +454,36 @@ with `certifi==2026.7.22` for verified TLS. All raw data stays local and is git-
   rationale, and malformed configs (duplicate ID, wrong example count) raise `ValueError`.
 - Full suite after this step: 51 tests passing, `ruff check .` clean.
 
+#### Job 15 — Phase 2 gap: PII scrubber (`src/prep/scrub_pii.py`)
+
+- Closed the blocking gap identified in Issue 10: build-plan step 19 never existed in the
+  repo, even though Phase 3 sampling and taxonomy work had already proceeded past it.
+- Wrote `scrub_text()`: applies email, CNIC (dashed `\d{5}-\d{7}-\d` and plain 13-digit),
+  Pakistani mobile (`03XX...` / `+923XX...`, with or without dashes/spaces), landline
+  (`0XX-XXXXXXX`, separator required to avoid false positives on short numbers), and a
+  generic 9+-digit account/reference-number pattern, applied most-specific-first so a
+  span already replaced by a placeholder cannot also match a looser later pattern.
+- Wrote `scrub_records()`: redacts each record's `text_clean` field into a new
+  `text_scrubbed` field without mutating any other field, and returns aggregate
+  redaction counts by type for reporting.
+- Added a CLI (`python -m src.prep.scrub_pii`) that reads
+  `data/interim/reviews_phase3_sample.jsonl`, writes
+  `data/interim/reviews_phase3_sample_scrubbed.jsonl`, and prints a redaction-count report.
+  `auto_label.py` should read the scrubbed file's `text_scrubbed` field, never `text` or
+  `text_clean`, when calling the LLM.
+- TDD: 16 tests written covering the ≥10-realistic-case acceptance bar from the original
+  Phase 2 spec — email, dashed/plain CNIC, mobile with/without country code and
+  separators, landline, generic account numbers, a mixed Urdu-script sentence with an
+  embedded phone number, multi-PII-per-string counting, and negative cases (`10/10`
+  rating, a 4-digit rupee amount) that must survive untouched so short numbers are never
+  over-redacted.
+- Full suite after this step: 67 tests passing, `ruff check .` clean.
+- **Not yet done:** running the scrubber against the real 9,000-item local sample. This
+  dev container has no `data/` contents (raw/interim data is git-ignored and only exists
+  on the human's local machine where Phase 1–3 were actually run). The human needs to
+  pull this commit locally and run `python -m src.prep.scrub_pii` there before
+  `auto_label.py` can be built and exercised against real text.
+
 ---
 
 ## 4. Key decisions and their reasoning
@@ -557,7 +587,7 @@ with `certifi==2026.7.22` for verified TLS. All raw data stays local and is git-
   because the token returned by the library stored `sort` as an integer (2) rather than
   the `Sort.NEWEST` enum member. The synthetic test token used `Sort.NEWEST` and missed
   this.
-- **Resolution:** `serialize_token` now handles both forms with `isinstance(token.sort, Sort)`. 
+- **Resolution:** `serialize_token` now handles both forms with `isinstance(token.sort, Sort)`.
   `deserialize_token` stores the integer directly (no enum conversion). The regression
   test was updated to use `Sort.NEWEST.value` to match the live shape.
 
@@ -610,33 +640,34 @@ with `certifi==2026.7.22` for verified TLS. All raw data stays local and is git-
   is written for the release dataset, but the same reasoning applies to sending
   unredacted text to any external API — phone numbers, CNIC numbers, and emails should
   not leave the local machine unredacted.
-- **Resolution status:** Not yet resolved. Flagged as a blocking item before running
-  `auto_label.py` against real data; see "Work pending" below. The previously-uncommitted
-  language-detection code has been committed as part of this session (Job 12).
+- **Resolution status:** Scrubber built and tested (Job 15) — `src/prep/scrub_pii.py`
+  redacts email/CNIC/phone/account patterns with 16 passing tests. **Still open:** it has
+  not yet been run against the real local sample, since this environment has no local
+  `data/` contents; that run has to happen on the human's machine before `auto_label.py`
+  is built. The previously-uncommitted language-detection code has been committed as
+  part of an earlier session (Job 12).
 
 ---
 
 ## 6. Work pending / next steps
 
-**Immediate next action: resolve the Phase 2 PII gap, then build `auto_label.py`.**
+**Immediate next action: run the PII scrubber locally, then build `auto_label.py`.**
 
-Before any real review text is sent to Anthropic's API, the Phase 2 PII scrubber
-(build-plan step 19) should exist and run over the sampled data — it was never built in
-an earlier session despite the cleaning/language work around it being done. Recommended
-order:
+`src/prep/scrub_pii.py` is now built and tested (Job 15). Recommended order from here:
 
-1. Write `src/prep/scrub_pii.py`: regex-redact phone numbers, CNIC-shaped numbers, email
-   addresses, and account numbers, replacing each with a typed placeholder (`<PHONE>`,
-   `<CNIC>`, `<ACCOUNT>`). Add unit tests covering at least 10 realistic cases (per the
-   original Phase 2 acceptance criteria). Run it over `reviews_phase3_sample.jsonl`
-   before that file is ever sent to an LLM.
+1. ~~Write `src/prep/scrub_pii.py`~~ **Done.** Regex-redacts phone numbers, CNIC-shaped
+   numbers, email addresses, and account numbers, replacing each with a typed
+   placeholder (`<PHONE>`, `<CNIC>`, `<ACCOUNT>`, `<EMAIL>`). 16 unit tests covering
+   realistic cases pass. **Still to do:** the human runs
+   `python -m src.prep.scrub_pii` locally over `reviews_phase3_sample.jsonl` — this dev
+   container has no local `data/` contents to run it against.
 2. Human adds their own `ANTHROPIC_API_KEY` to a local, git-ignored `.env` (already
    confirmed: using existing Anthropic Console credit, not a Copilot-provided key).
-3. Write `src/label/auto_label.py`: send each PII-scrubbed sampled review to
-   `claude-haiku-4-5` with the approved taxonomy, request structured JSON output
-   (intent, language, severity, confidence, one-sentence rationale), cache every response
-   to disk keyed by content hash, batch requests, handle rate limits, resume cleanly
-   after interruption, and log cumulative spend as it runs.
+3. Write `src/label/auto_label.py`: send each record's `text_scrubbed` field from the
+   scrubbed sample to `claude-haiku-4-5` with the approved taxonomy, request structured
+   JSON output (intent, language, severity, confidence, one-sentence rationale), cache
+   every response to disk keyed by content hash, batch requests, handle rate limits,
+   resume cleanly after interruption, and log cumulative spend as it runs.
 4. Run auto-labelling on the 9,000-item sample. Estimated cost with Haiku 4.5: roughly
    $15–33, based on Anthropic's own published per-ticket cost example scaled to this
    volume, likely lower given caching and shorter per-item text than that example.
@@ -655,8 +686,10 @@ order:
   rating: **done** (9,000 sampled, seeded, reproducible, report on disk).
 - `config/taxonomy.yaml` with human-written definitions and 2 positive + 1 negative
   example per intent: **done** (all 24 intents, human-approved batch by batch).
+- PII scrubber built and tested, ready to run over the sample: **done** (not yet run
+  against real local data — see Job 15).
 - Auto-labelling with cached, resumable, spend-logged LLM calls: **not started**
-  (blocked on the PII scrubber above).
+  (blocked on running the scrubber locally and adding an API key).
 - Every intent with ≥30 examples, spend under budget, cache hit-rate verified on re-run:
   **not started**.
 
@@ -683,7 +716,7 @@ python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 pip install -e .
 pre-commit install
-ruff check . && pytest   # should pass — currently 28 tests
+ruff check . && pytest   # should pass — currently 67 tests
 cp .env.example .env     # fill in real keys only when Phase 3/6 needs them
 ```
 
@@ -741,4 +774,4 @@ When the human types **`wrap`** in a chat session:
 | 2026-08-15 | `33ea30a` | Phase 1 Job 3–6: dual-platform registry, Apple collector, census, 100k quota config |
 | 2026-08-16 | `9cfae77` | Phase 1 Job 7–8: quotas, 17-app collection, empty-page guard, `validate_raw` |
 | 2026-08-16 | `cb7c09e` | Phase 2 preview: cleaned-schema contract, bounded review preview, dropdown-with-checkboxes product filter, focused tests |
-| 2026-08-17 | `f476db5` | Phase 3 Steps 1\u20132: stratified sampler, human-authored 24-intent taxonomy, committed pending Phase 2 language-detection work |
+| 2026-08-17 | `f476db5` | Phase 3 Steps 1\u20132: stratified sampler, human-authored 24-intent taxonomy, committed pending Phase 2 language-detection work || 2026-08-17 | *(pending this commit)* | Phase 2 Job 15: PII scrubber (`src/prep/scrub_pii.py`), 16 tests; not yet run against real local data |
