@@ -1,8 +1,8 @@
 # PROGRESS_LOG.md — UrduCX-Bench Project Memory
 
 > **Purpose:** This is the project's persistent brain. Read this file first in any new
-> session (alongside `PROJECT_CONTEXT.md`, which holds the static build plan) to resume
-> work with full context — no re-explaining required.
+> session (alongside the local-only `PROJECT_CONTEXT_V2.md`, which holds the active build
+> plan) to resume work with full context — no re-explaining required.
 >
 > **Update protocol:** This file is updated, committed, and pushed automatically whenever
 > the human types `wrap` at the end of a working session, with no further confirmation
@@ -16,7 +16,9 @@ UrduCX-Bench is an open benchmark measuring how well AI models handle real
 customer-service conversations in Urdu, Roman Urdu, and Urdu-English code-switched
 text, in the telecom/mobile-wallet domain. Solo builder, part-time, budget under $150.
 
-Full spec lives in `PROJECT_CONTEXT.md` (local-only, git-ignored — never pushed).
+The active spec lives in `PROJECT_CONTEXT_V2.md` (local-only in the human's Downloads
+folder — never committed or pushed). It supersedes the original `PROJECT_CONTEXT.md`
+from 2026-08-18 onward.
 
 ---
 
@@ -26,8 +28,9 @@ Full spec lives in `PROJECT_CONTEXT.md` (local-only, git-ignored — never pushe
 |---|---|---|
 | 0 — Repo & environment setup | **Done** | Scaffold committed and pushed |
 | 1 — Data collection | **Done** | 17 products collected; ~107.8k unique reviews; validator printed; human reviewed localhost previews |
-| 2 — Cleaning & language detection | **In progress** | Cleaning, product-ID remapping, deduplication, and deterministic language detection are implemented and tested (54,519 kept records); PII scrubber (`scrub_pii.py`, step 19) is **built and tested**; the human confirmed the local `git pull` and scrubber tests pass on their machine |
-| 3 — Sampling & auto-labelling | **In progress** | Stratified sampler (9,000 of 54,519), the full 24-intent human-authored taxonomy, the PII scrubber, and `src/label/auto_label.py` (Job 16) are all built and tested; blocked only on the human running the scrubber over the real local sample and adding an `ANTHROPIC_API_KEY` before a real labelling run |
+| 2 — Cleaning, language & PII | **In progress** | Cleaning, product-ID remapping, deduplication, and deterministic language detection are implemented (54,519 kept); the initial PII scrubber has 16 passing tests but must be hardened for non-ASCII numerals and against over-scrubbing before any real API call |
+| 2.5 — Script-gap pilot | **Not started (new gate)** | Human must write 20 complaints in Urdu script, natural Roman Urdu, code-switched text, and English (80 items); run a small cached model comparison and record a go/no-go decision before paid auto-labelling |
+| 3 — Sampling & auto-labelling | **In progress** | The separate 9,000-item sample, 24-intent taxonomy, and initial cached/retryable auto-label pipeline are built; no paid call has occurred; pipeline must adopt the extended schema, strict value validation, and versioned cache keys after Phases 2 and 2.5 pass |
 | 4 — Human verification | Not started | Blocked on Phase 3 |
 | 5 — Benchmark task building | Not started | Blocked on Phase 4 |
 | 6 — Scoring harness | Not started | Blocked on Phase 5 |
@@ -529,18 +532,76 @@ with `certifi==2026.7.22` for verified TLS. All raw data stays local and is git-
   succeed, retry exhaustion raises, cache roundtrip, spend accounting, and `--limit`
   truncation. No test calls the real Anthropic API.
 - Full suite after this step: 79 tests passing, `ruff check .` clean.
-- **Not yet done:** an actual paid labelling run. That requires the human's local
-  `ANTHROPIC_API_KEY` in `.env` and the scrubbed 9,000-item sample on their machine;
-  recommended first step locally is a small `--limit` smoke test before the full run.
+- **Not yet done:** an actual paid labelling run. V2 now requires PII hardening, the
+  Phase 2.5 pilot decision, an extended output schema, and versioned cache identity
+  before any small paid smoke test or full run. The human-owned API key remains local.
+
+#### Job 17 — V2 project-plan amendment and revised gates (decision complete)
+
+- Human reviewed a proposed mid-Phase-3 amendment against the original project plan and
+  approved a smaller, corrected V2 direction. The consolidated active plan was written
+  to `/Users/chaudry/Downloads/PROJECT_CONTEXT_V2.md`; it is deliberately outside this
+  repository and must never be committed or pushed.
+- **Data preservation is now explicit:** the 111,169 scanned raw records (including known
+  census overlap), ~107,780 expected unique reviews, 54,519 cleaned records, and separate
+  9,000-item sample are independent layers. No new cleaning, scrubbing, labelling, or
+  benchmark script may overwrite or delete an earlier layer. New work writes derived
+  files/fields only; original text and numeral forms remain local.
+- **PII hardening is the immediate engineering priority:** the initial scrubber is useful
+  but its generic 9+-digit account rule can destroy transaction references needed for T3,
+  and coverage must include Pakistani phone/CNIC/IBAN forms written with ASCII,
+  Urdu-Indic, or Arabic-Indic numerals. Matching will use a separate normalized field;
+  amounts, dates, references, prices, and data quantities must survive. Acceptance now
+  tests both PII removal and collateral damage, followed by a 50-record manual check
+  stratified across the four language classes.
+- **Phase 2.5 is inserted before the paid Phase 3 run:** the human will write 20 realistic
+  complaints with four human-written variants each (Urdu script, naturally messy Roman
+  Urdu, code-switched, English) and assign the correct fine intent. A small cached model
+  run will test whether the proposed script-gap headline is promising. The 80-item pilot
+  is a private go/no-go signal and public preview only, never a publishable benchmark
+  result or release-data source.
+- **All 24 human-authored taxonomy definitions remain authoritative.** The proposed
+  forced collapse to 14 was declined. Optional broader reporting groups may be computed
+  later without overwriting fine labels. `refund_requested` and `vas_related` will be
+  collected as orthogonal booleans while the existing fine intents remain intact.
+- **No external annotator is available for v1.** The original solo-verification path is
+  retained: the human verifies at least 1,000 items and blindly relabels 200 after at
+  least 48 hours. Report human-vs-AI and human-vs-self agreement and disclose the
+  single-annotator limitation prominently; do not claim inter-annotator agreement.
+- **The first paid label pass must collect the richer schema:** primary/secondary intent,
+  multi-intent flag, language, severity, refund/VAS flags, entity-presence hints, T2 seed
+  quality, Roman-Urdu orthographic variance, confidence, and one-sentence rationale.
+  Values must be strictly validated. Cache identity must include text, exact model,
+  prompt version, taxonomy version, and schema version so the existing five-field cache
+  cannot be mistaken for a new response.
+- **Later evaluation gains practical controls:** majority-class, TF-IDF/logistic-regression,
+  and translate-then-classify baselines; bootstrap 95% confidence intervals (resampling
+  whole complaint groups for T2); and a 20-item per-model cost pilot before the full
+  Phase 6 run. The $120 project stop-and-report rule remains.
+- The original product goal and USP are unchanged: an open, reproducible exam for real
+  Pakistani telecom/wallet customer-service risk across Urdu script, natural Roman Urdu,
+  English, and code-switching. The amendment strengthens privacy, evidence quality, and
+  the chance of a clear public finding; it does not turn the project into a chatbot,
+  discard the corpus, or predetermine the headline.
+- The closest reviewed public resources cover Roman-Urdu sentiment, hate/offensive
+  speech, embeddings, or general language tasks. They are relevant comparisons but do
+  not replace the planned combination of customer-service intent, entity extraction,
+  fictional-policy reasoning, safety, script consistency, and a public model leaderboard.
+- Job 16 remains valid engineering groundwork, but is **not the final paid-run contract**.
+  It has caching, retries, pacing, spend tracking, and 12 focused tests; its output schema,
+  cache key, and validation must be revised only after Phases 2 and 2.5 pass. No Anthropic
+  key/account was provided or used and no real provider request has been made.
 
 ---
 
 ## 4. Key decisions and their reasoning
 
-1. **`PROJECT_CONTEXT.md` stays local and untracked.** It contains agent-facing working
-   instructions ("you are helping a solo builder..."). It is listed in `.gitignore` so it
-   is never committed or pushed. This keeps the public repo free of AI-authoring traces
-   while still letting any AI assistant read it locally each session.
+1. **Project context stays local and untracked.** The active plan is now
+  `/Users/chaudry/Downloads/PROJECT_CONTEXT_V2.md`; it contains agent-facing working
+  instructions ("you are helping a solo builder..."). Its Downloads location keeps it
+  outside the repository, while the original `PROJECT_CONTEXT.md` filename remains
+  explicitly git-ignored. This keeps the public repo free of working-plan traces while
+  still letting an assistant read the active plan locally each session.
 2. **No AI-tool references anywhere in tracked files.** No mentions of Copilot, Claude,
    Codex, Cursor, or "AI-generated" in commit messages, code comments, or docs. Common
    AI-tool local-state directories are added to `.gitignore` as a precaution.
@@ -697,45 +758,36 @@ with `certifi==2026.7.22` for verified TLS. All raw data stays local and is git-
   is written for the release dataset, but the same reasoning applies to sending
   unredacted text to any external API — phone numbers, CNIC numbers, and emails should
   not leave the local machine unredacted.
-- **Resolution status:** Scrubber built and tested (Job 15) — `src/prep/scrub_pii.py`
-  redacts email/CNIC/phone/account patterns with 16 passing tests. **Still open:** it has
-  not yet been run against the real local sample, since this environment has no local
-  `data/` contents; that run has to happen on the human's machine before `auto_label.py`
-  is built. The previously-uncommitted language-detection code has been committed as
-  part of an earlier session (Job 12).
+- **Resolution status:** The initial scrubber is built and tested (Job 15), and the
+  auto-label engineering foundation exists (Job 16). V2 keeps this issue open until the
+  broad account-number rule is replaced by typed/anchored patterns, non-ASCII numeral
+  coverage is added, must-survive facts are tested, the local sample is scrubbed into a
+  new file, and the human completes the stratified 50-record inspection. No external
+  API call may occur before those checks pass. The previously-uncommitted language code
+  was committed in Job 12.
 
 ---
 
 ## 6. Work pending / next steps
 
-**Immediate next action: run the scrubber and `auto_label.py` locally against the real sample.**
+**Immediate next action: harden Phase 2 PII protection. Do not run paid auto-labelling yet.**
 
-`src/prep/scrub_pii.py` (Job 15) and `src/label/auto_label.py` (Job 16) are both built
-and tested. Recommended order from here:
+Required order under `PROJECT_CONTEXT_V2.md`:
 
-1. ~~Write `src/prep/scrub_pii.py`~~ **Done.** Regex-redacts phone numbers, CNIC-shaped
-   numbers, email addresses, and account numbers, replacing each with a typed
-   placeholder (`<PHONE>`, `<CNIC>`, `<ACCOUNT>`, `<EMAIL>`). 16 unit tests pass, and the
-   human confirmed they pass locally too.
-2. Human runs `python -m src.prep.scrub_pii` locally over
-   `data/interim/reviews_phase3_sample.jsonl` to produce
-   `data/interim/reviews_phase3_sample_scrubbed.jsonl` — not yet done.
-3. Human adds their own `ANTHROPIC_API_KEY` to a local, git-ignored `.env` (already
-   confirmed: using existing Anthropic Console credit, not a Copilot-provided key) —
-   not yet done.
-4. ~~Write `src/label/auto_label.py`~~ **Done (Job 16).** Sends each `text_scrubbed`
-   review to `claude-haiku-4-5` with the approved taxonomy, requests structured JSON
-   output (intent, language, severity, confidence, one-sentence rationale), caches every
-   response to disk keyed by content hash, paces requests, retries with backoff on rate
-   limits, resumes cleanly after interruption, and logs cumulative token spend. 12 tests
-   pass with no real network calls.
-5. Run auto-labelling on the 9,000-item sample — recommended: a small `--limit` smoke
-   test first, then the full run. Estimated cost with Haiku 4.5: roughly $15–33, based on
-   Anthropic's own published per-ticket cost example scaled to this volume, likely lower
-   given caching and shorter per-item text than that example. **Not yet run.**
-6. Write `src/label/label_stats.py`: per-intent counts, confidence distribution, flag any
-   intent with fewer than 30 examples.
-7. Re-sample and top up any starved intents before moving to Phase 4.
+1. Add non-destructive numeral normalization and typed Pakistani PII patterns; remove the
+  broad digit-run account rule that can consume transaction references.
+2. Expand tests to include non-ASCII numerals and at least eight must-survive amount/date/
+  transaction/price/data examples.
+3. Run the hardened scrubber into a new derived file, preserving raw, cleaned, and sampled
+  source files unchanged.
+4. Human inspects 50 records stratified across all four language classes and records zero
+  visible PII plus zero destroyed amounts/dates. Stop and report Phase 2 acceptance.
+5. After approval, build Phase 2.5: 20 human-authored complaints × four language forms,
+  cached model runner, gap report, spend report, and human go/no-go decision.
+6. Only after that decision, revise Job 16 to the extended schema, strict validation, and
+  versioned cache identity; test 10–25 paid items and project cost before the 9,000 run.
+7. After the real run, build `label_stats.py`, inspect rare intents/T2/entity candidate
+  coverage, and top up only where evidence requires it.
 
 **Phase 1 acceptance criteria (from `PROJECT_CONTEXT.md`) — met:**
 - ≥40,000 reviews across ≥4 apps spanning ≥24 months: ~107,780 unique across 17
@@ -743,27 +795,29 @@ and tested. Recommended order from here:
 - Validation report printed (`python -m src.collect.validate_raw`).
 - No PII fields in the stored schema.
 
-**Phase 3 progress against acceptance criteria (from `PROJECT_CONTEXT.md`):**
+**Phase 3 progress against the V2 acceptance criteria:**
 - Stratified sample of 8,000–10,000 reviews balanced across product, language, and
   rating: **done** (9,000 sampled, seeded, reproducible, report on disk).
 - `config/taxonomy.yaml` with human-written definitions and 2 positive + 1 negative
   example per intent: **done** (all 24 intents, human-approved batch by batch).
-- PII scrubber built and tested, ready to run over the sample: **done** (not yet run
-  against real local data — see Job 15).
-- Auto-labelling pipeline (`auto_label.py`) with caching, retries, resume, and spend
-  logging: **built and tested (Job 16)**; **no real labelling run has happened yet** —
-  blocked only on the human running the scrubber locally and adding an API key.
+- Initial PII scrubber engineering: **done (Job 15)**; V2 hardening and stratified manual
+  check: **not started**.
+- Phase 2.5 pilot: **not started** and now required before paid auto-labelling.
+- Auto-labelling foundation with caching, retries, resume, and spend logging: **built and
+  tested (Job 16)**; V2 extended schema/cache/validation revision: **not started**; no
+  real labelling run has happened.
 - Every intent with ≥30 examples, spend under budget, cache hit-rate verified on re-run:
   **not started** (depends on the real run above).
 
 **Open questions for later phases:**
-1. ~~Accept the 24-intent taxonomy as-is, or revise after reading a 200-review sample?~~
-   **Resolved:** human authored and approved all 24 intents with definitions and
-   examples directly, family by family.
-2. Publish both dev/test splits, or hold out the test set? (Spec recommends publishing both.)
-3. Final model roster for the leaderboard (Phase 6).
-4. Single-annotator gold set acceptable for v1? (Spec recommends yes, documented in
-   `LIMITATIONS.md`.)
+1. ~~Taxonomy granularity~~ **Resolved:** retain all 24 fine intents; broader reporting
+  groups may be derived later but never replace fine labels.
+2. ~~External annotators for v1~~ **Resolved:** unavailable; use 1,000 solo verifications
+  plus a blind delayed 200-item self-check and disclose the limitation.
+3. Exact Phase 2.5 model roster and exact final script-gap formula.
+4. T1 single-label versus multi-label, decided only after Phase 3 multi-intent rates.
+5. Publish both dev/test splits or retain a hidden holdout.
+6. Final Phase 6 model roster and evidence-led public headline.
 
 ---
 
@@ -783,8 +837,9 @@ ruff check . && pytest   # should pass — currently 79 tests
 cp .env.example .env     # fill in real keys only when Phase 3/6 needs them
 ```
 
-`PROJECT_CONTEXT.md` is not in git (by design). Copy it over manually if resuming on a
-new machine. Raw data (`data/raw/`) is also local-only and git-ignored.
+The active `PROJECT_CONTEXT_V2.md` is stored in the human's Downloads folder and is not
+in git by design. Copy it manually when resuming on another machine. Raw and interim
+data are also local-only and git-ignored.
 
 **Local browser preview servers (run manually when needed):**
 ```bash
@@ -839,4 +894,5 @@ When the human types **`wrap`** in a chat session:
 | 2026-08-16 | `cb7c09e` | Phase 2 preview: cleaned-schema contract, bounded review preview, dropdown-with-checkboxes product filter, focused tests |
 | 2026-08-17 | `f476db5` | Phase 3 Steps 1–2: stratified sampler, human-authored 24-intent taxonomy, committed pending Phase 2 language-detection work |
 | 2026-08-17 | `b51bf9b` | Phase 2 Job 15: PII scrubber (`src/prep/scrub_pii.py`), 16 tests; not yet run against real local data |
-| 2026-08-18 | *(pending this commit)* | Phase 3 Job 16: auto-labelling pipeline (`src/label/auto_label.py`), `anthropic` dependency added, 12 tests; not yet run against real local data |
+| 2026-08-18 | `9f7e5ce` | Phase 3 Job 16: initial auto-labelling pipeline (`src/label/auto_label.py`), `anthropic` dependency added, 12 tests; no paid/provider call |
+| 2026-08-18 | *(pending this commit)* | Job 17: adopt V2 gates and decisions; preserve all data layers, retain 24 intents, harden PII, insert Phase 2.5, extend label schema, use solo verification and later baselines/CIs |
