@@ -1,7 +1,7 @@
 """Collect a bounded Google sample and store-reported availability metadata.
 
 This census intentionally writes one recent page per approved listing, not the full corpus. It
-measures product/rating/date coverage cheaply before the human selects final collection quotas.
+measures product/rating/date coverage cheaply before final collection quotas are chosen.
 """
 
 from __future__ import annotations

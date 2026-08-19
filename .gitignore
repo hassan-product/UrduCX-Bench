@@ -226,12 +226,3 @@ outputs/cache/
 .DS_Store
 PROJECT_CONTEXT.md
 PROJECT_CONTEXT_V2.md
-AGENTS.md
-CLAUDE.md
-.claude/
-.codex/
-.cursor/
-.continue/
-.copilot/
-.windsurf/
-.aider*

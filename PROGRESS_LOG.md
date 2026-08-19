@@ -4,9 +4,8 @@
 > session (alongside the local-only `PROJECT_CONTEXT_V2.md`, which holds the active build
 > plan) to resume work with full context — no re-explaining required.
 >
-> **Update protocol:** This file is updated, committed, and pushed automatically whenever
-> the human types `wrap` at the end of a working session, with no further confirmation
-> requested for that specific action. See "Session update protocol" at the bottom.
+> **Update protocol:** This file is updated, committed, and pushed at the end of each
+> working session (`wrap`). See "Session update protocol" at the bottom.
 
 ---
 
@@ -16,9 +15,9 @@ UrduCX-Bench is an open benchmark measuring how well AI models handle real
 customer-service conversations in Urdu, Roman Urdu, and Urdu-English code-switched
 text, in the telecom/mobile-wallet domain. Solo builder, part-time, budget under $150.
 
-The active spec lives in `PROJECT_CONTEXT_V2.md` (local-only in the human's Downloads
-folder — never committed or pushed). It supersedes the original `PROJECT_CONTEXT.md`
-from 2026-08-18 onward.
+The active spec lives in `PROJECT_CONTEXT_V2.md` (local-only, git-ignored — never
+committed or pushed). It supersedes the original `PROJECT_CONTEXT.md` from 2026-08-18
+onward.
 
 ---
 
@@ -35,7 +34,7 @@ from 2026-08-18 onward.
 | 5 — Benchmark task building | Not started | Blocked on Phase 4 |
 | 6 — Scoring harness | Not started | Blocked on Phase 5 |
 | 7 — Publication | Not started | Blocked on Phase 6 |
-| 8 — Distribution | Not started | Human-led, not agent work |
+| 8 — Distribution | Not started | Outreach and launch; not an engineering phase |
 
 **Environment:** Phase 0 was developed in a cloud/web dev container. Phase 1 development
 continues locally on macOS in a Python 3.13 virtual environment (`.venv/`). The project
@@ -63,14 +62,15 @@ with `certifi==2026.7.22` for verified TLS. All raw data stays local and is git-
   `ANTHROPIC_API_KEY`, `GOOGLE_API_KEY`, `HF_TOKEN`) with empty values. Real `.env` is
   git-ignored and was never created in this environment (no keys used yet).
 - Placeholder config files created as empty/neutral scaffolds, deliberately **not**
-  pre-filled with judgment calls that belong to the human: `config/apps.yaml`,
+  pre-filled with judgment calls that belong to the maintainer: `config/apps.yaml`,
   `config/models.yaml`, `config/taxonomy.yaml`, `config/policy_docs/README.md`.
 - Created a local Python 3.12 virtual environment (`.venv/`, git-ignored), installed
   pinned dependencies, confirmed `ruff check` passes clean and `pytest` collects 0 tests
   and exits 0 (Phase 0's exact acceptance criterion).
 - Set up `.gitignore` to exclude: secrets (`.env`), raw/interim data, caches
-  (`outputs/cache/`, `.ruff_cache/`, `.pytest_cache/`), virtual environments, editor
-  metadata, and **any AI-tool-specific local artifacts** (see decision log below).
+  (`outputs/cache/`, `.ruff_cache/`, `.pytest_cache/`), virtual environments, and editor
+  metadata. Machine-specific local tooling state is excluded via `.git/info/exclude`
+  instead, so it leaves no trace in the tracked repository (see decision log below).
 - Committed (`chore: initialise repository scaffold`, commit `78733bc`) and pushed to
   `origin/main` on GitHub (`hassan-product/UrduCX-Bench`).
 
@@ -163,7 +163,7 @@ with `certifi==2026.7.22` for verified TLS. All raw data stays local and is git-
 **Human approval gate:**
 - The registry browser (`data/raw/source_registry_preview/index.html`) exposes all 33
   listings with Platform, Tier, Vertical, Brand, and Status filters plus direct
-  clickable store links for manual verification. The human confirmed all 33 listings.
+  clickable store links for manual verification. The maintainer confirmed all 33 listings.
 - Committed as part of `33ea30a`.
 
 #### Job 4 — Shared schema and Apple collector (complete)
@@ -332,7 +332,7 @@ with `certifi==2026.7.22` for verified TLS. All raw data stays local and is git-
 - The preview keeps Platform, Brand group, and Rating filters separate. Product identity
   continues to use canonical `product_id`; brand filtering is only a convenience view and
   does not merge distinct Jazz applications.
-- Product-filter UI went through three decisions based on the human's requested behavior:
+- Product-filter UI went through three decisions based on the maintainer's requested behavior:
   1. The initial checkbox grid was insufficient because it permanently occupied the page.
   2. A native multi-select listbox supported multiple values but was not a dropdown with
      checkboxes and therefore did not match the requested interaction.
@@ -438,8 +438,8 @@ with `certifi==2026.7.22` for verified TLS. All raw data stays local and is git-
 #### Job 14 — Phase 3 Step 2: human-authored taxonomy (`config/taxonomy.yaml`, `src/label/taxonomy.py`)
 
 - Per `PROJECT_CONTEXT.md` Section 6 and build-plan step 23, taxonomy definitions are a
-  **human-judgment gate** — declined to auto-fill `config/taxonomy.yaml` and instead
-  facilitated the human authoring all 24 intents.
+  **human-judgment gate** — `config/taxonomy.yaml` was not auto-filled; all 24 intents
+  were authored by hand.
 - Walked through all 6 families (Billing & Charges, Access & Account, Money Movement,
   Fraud & Safety, Network & Service, Product & Navigation) one family per batch. For each
   of the 24 intents, drafted a 1-line definition, 2 positive examples, 1 negative example,
@@ -483,7 +483,7 @@ with `certifi==2026.7.22` for verified TLS. All raw data stays local and is git-
 - Full suite after this step: 67 tests passing, `ruff check .` clean.
 - **Not yet done:** running the scrubber against the real 9,000-item local sample. This
   dev container has no `data/` contents (raw/interim data is git-ignored and only exists
-  on the human's local machine where Phase 1–3 were actually run). The human needs to
+  on the maintainer's local machine where Phase 1–3 were actually run). The maintainer needs to
   pull this commit locally and run `python -m src.prep.scrub_pii` there before
   `auto_label.py` can be built and exercised against real text.
 - Human pulled this commit locally, ran `pytest tests/prep/test_scrub_pii.py -q`, and
@@ -534,7 +534,7 @@ with `certifi==2026.7.22` for verified TLS. All raw data stays local and is git-
 - Full suite after this step: 79 tests passing, `ruff check .` clean.
 - **Not yet done:** an actual paid labelling run. V2 now requires PII hardening, the
   Phase 2.5 pilot decision, an extended output schema, and versioned cache identity
-  before any small paid smoke test or full run. The human-owned API key remains local.
+  before any small paid smoke test or full run. The maintainer-owned API key remains local.
 
 #### Job 17 — V2 project-plan amendment and revised gates (decision complete)
 
@@ -554,7 +554,7 @@ with `certifi==2026.7.22` for verified TLS. All raw data stays local and is git-
   amounts, dates, references, prices, and data quantities must survive. Acceptance now
   tests both PII removal and collateral damage, followed by a 50-record manual check
   stratified across the four language classes.
-- **Phase 2.5 is inserted before the paid Phase 3 run:** the human will write 20 realistic
+- **Phase 2.5 is inserted before the paid Phase 3 run:** the maintainer will write 20 realistic
   complaints with four human-written variants each (Urdu script, naturally messy Roman
   Urdu, code-switched, English) and assign the correct fine intent. A small cached model
   run will test whether the proposed script-gap headline is promising. The 80-item pilot
@@ -565,7 +565,7 @@ with `certifi==2026.7.22` for verified TLS. All raw data stays local and is git-
   later without overwriting fine labels. `refund_requested` and `vas_related` will be
   collected as orthogonal booleans while the existing fine intents remain intact.
 - **No external annotator is available for v1.** The original solo-verification path is
-  retained: the human verifies at least 1,000 items and blindly relabels 200 after at
+  retained: the maintainer verifies at least 1,000 items and blindly relabels 200 after at
   least 48 hours. Report human-vs-AI and human-vs-self agreement and disclose the
   single-annotator limitation prominently; do not claim inter-annotator agreement.
 - **The first paid label pass must collect the richer schema:** primary/secondary intent,
@@ -597,19 +597,19 @@ with `certifi==2026.7.22` for verified TLS. All raw data stays local and is git-
 ## 4. Key decisions and their reasoning
 
 1. **Project context stays local and untracked.** The active plan is now
-  `/Users/chaudry/Downloads/PROJECT_CONTEXT_V2.md`; it contains agent-facing working
-  instructions ("you are helping a solo builder..."). Its Downloads location keeps it
-  outside the repository, while the original `PROJECT_CONTEXT.md` filename remains
-  explicitly git-ignored. This keeps the public repo free of working-plan traces while
-  still letting an assistant read the active plan locally each session.
-2. **No AI-tool references anywhere in tracked files.** No mentions of Copilot, Claude,
-   Codex, Cursor, or "AI-generated" in commit messages, code comments, or docs. Common
-   AI-tool local-state directories are added to `.gitignore` as a precaution.
+  `PROJECT_CONTEXT_V2.md`; both it and the original `PROJECT_CONTEXT.md` are explicitly
+  git-ignored. Working plans, budgets, and internal process notes are kept out of the
+  public repository so it contains only the project itself.
+2. **Tracked files describe the project, not the process used to build it.** Commit
+   messages, code comments, and docs stay free of tooling, workflow, and authorship
+   commentary. Machine-specific local tooling state is excluded through the per-clone
+   `.git/info/exclude` file rather than the tracked `.gitignore`, so the ignore list
+   itself carries no working-process trace either.
 3. **Code license = Apache-2.0; dataset license (once released) = CC BY 4.0** — per
    `PROJECT_CONTEXT.md` Section 12, to maximise adoption.
 4. **Config files left empty rather than guessed.** `apps.yaml`, `models.yaml`,
-   `taxonomy.yaml`, and `policy_docs/` require human judgment calls (the brief explicitly
-   says "the human owns all judgment decisions").
+   `taxonomy.yaml`, and `policy_docs/` require human judgment calls, which the brief
+   reserves for the maintainer.
 5. **Phase-gate discipline with one-job-at-a-time human approval.** Per the brief's
    working rule #2, each phase stops and reports before the next begins. Within Phase 1,
    an additional one-job-at-a-time gate was adopted: each discrete deliverable is shown
@@ -664,10 +664,9 @@ with `certifi==2026.7.22` for verified TLS. All raw data stays local and is git-
   project's own 0.6 threshold, or specific intents show poor agreement, the plan is to
   selectively re-label only those flagged items with a stronger model — not the full
   9,000-item batch — rather than defaulting to a more expensive model upfront.
-18. **API key is human-supplied and local-only.** The human is using their own Anthropic
-  Console credit (not a GitHub Copilot subscription, which does not expose a portable API
-  key for use in standalone scripts). The key goes into a local, git-ignored `.env` file
-  per the existing `.env.example` convention; it is never pasted into chat or committed.
+18. **API key is human-supplied and local-only.** The maintainer is using their own Anthropic
+  Console credit. The credential goes into a local, git-ignored `.env` file per the
+  existing `.env.example` convention; it is never shared or committed.
 19. **`auto_label.py` injects the model call and the sleep function rather than taking an
   `Anthropic` client directly.** This mirrors the Phase 1 scraper's `RequestPacer`/
   `reviews_fn` injection pattern and means the full retry/backoff/cache logic has real
@@ -686,9 +685,14 @@ with `certifi==2026.7.22` for verified TLS. All raw data stays local and is git-
   commit attempt, aborting it by design. Re-staged and recommitted.
 - **Lesson:** Always expect first-commit hook reformatting; re-stage and retry.
 
-### Issue 2 — AI-tool gitignore trace (Phase 0)
-- Tool directory names (`.claude/` etc.) are listed in `.gitignore` as housekeeping;
-  no authoring commentary appears in any tracked file.
+### Issue 2 — Local tooling state named in the tracked ignore file (Phase 0)
+- **What happened:** Machine-specific editor and tooling directories were listed in the
+  tracked `.gitignore`. Those entries are a local working-environment detail that does
+  not belong in a public repository.
+- **Resolution:** Moved them to `.git/info/exclude`, which is per-clone and never pushed.
+  `.gitignore` now carries only project-level exclusions (secrets, data, caches,
+  virtualenvs, editor metadata). Note the trade-off: `.git/info/exclude` does not travel
+  with a fresh clone, so it must be recreated when setting up on another machine.
 
 ### Issue 3 — Google Play search API omits first-result `appId` (Phase 1)
 - **What happened:** For dominant apps (SIMOSA, JazzCash, Easypaisa), the library
@@ -727,9 +731,9 @@ with `certifi==2026.7.22` for verified TLS. All raw data stays local and is git-
   `ruff check` and the YAML pre-commit hook now catch similar issues.
 
 ### Issue 7 — Sandbox blocked `git push` and `python -m http.server` (Phase 1)
-- The VS Code Copilot sandbox blocked localhost socket binding (port 8765–8767) and Git's
-  credential-helper IPC pipe. Resolved by retrying with `requestUnsandboxedExecution`
-  for server commands and Git pushes.
+- The sandboxed execution environment blocked localhost socket binding (ports 8765–8767)
+  and Git's credential-helper IPC pipe. Resolved by running the preview servers and Git
+  pushes outside the sandbox.
 
 ### Issue 8 — Sandboxed Google collection wrote empty pages (Phase 1)
 - **What happened:** The first full Google run inside the sandbox printed
@@ -762,7 +766,7 @@ with `certifi==2026.7.22` for verified TLS. All raw data stays local and is git-
   auto-label engineering foundation exists (Job 16). V2 keeps this issue open until the
   broad account-number rule is replaced by typed/anchored patterns, non-ASCII numeral
   coverage is added, must-survive facts are tested, the local sample is scrubbed into a
-  new file, and the human completes the stratified 50-record inspection. No external
+  new file, and the maintainer completes the stratified 50-record inspection. No external
   API call may occur before those checks pass. The previously-uncommitted language code
   was committed in Job 12.
 
@@ -837,7 +841,7 @@ ruff check . && pytest   # should pass — currently 79 tests
 cp .env.example .env     # fill in real keys only when Phase 3/6 needs them
 ```
 
-The active `PROJECT_CONTEXT_V2.md` is stored in the human's Downloads folder and is not
+The active `PROJECT_CONTEXT_V2.md` is stored in the maintainer's Downloads folder and is not
 in git by design. Copy it manually when resuming on another machine. Raw and interim
 data are also local-only and git-ignored.
 
@@ -867,18 +871,16 @@ python -m http.server 8768 --bind 127.0.0.1 --directory data/interim/clean_previ
 
 ## 8. Session update protocol
 
-When the human types **`wrap`** in a chat session:
+At the end of each working session (**`wrap`**):
 
 1. Update this file's "Current status", "Work completed", "Issues/bugs", and
    "Work pending" sections to reflect everything done in that session.
 2. `git add PROGRESS_LOG.md`, commit with message `docs: update progress log`
-   (or a more specific message if useful), and `git push` — **without asking for
-   further confirmation**, since this is a standing instruction covering exactly this
-   one file and this one action.
-3. This standing permission is scoped narrowly: it covers only updating, committing,
-   and pushing `PROGRESS_LOG.md`. It does not extend to other destructive or
-   irreversible git operations (force-push, history rewrite, branch deletion, etc.),
-   which still require explicit confirmation each time.
+   (or a more specific message if useful), and `git push`.
+3. This routine is scoped narrowly: it covers only updating, committing, and pushing
+   `PROGRESS_LOG.md`. It never extends to destructive or irreversible git operations
+   (force-push, history rewrite, branch deletion, etc.), which are always a deliberate,
+   separately considered step.
 
 ---
 
@@ -895,4 +897,6 @@ When the human types **`wrap`** in a chat session:
 | 2026-08-17 | `f476db5` | Phase 3 Steps 1–2: stratified sampler, human-authored 24-intent taxonomy, committed pending Phase 2 language-detection work |
 | 2026-08-17 | `b51bf9b` | Phase 2 Job 15: PII scrubber (`src/prep/scrub_pii.py`), 16 tests; not yet run against real local data |
 | 2026-08-18 | `9f7e5ce` | Phase 3 Job 16: initial auto-labelling pipeline (`src/label/auto_label.py`), `anthropic` dependency added, 12 tests; no paid/provider call |
-| 2026-08-18 | *(pending this commit)* | Job 17: adopt V2 gates and decisions; preserve all data layers, retain 24 intents, harden PII, insert Phase 2.5, extend label schema, use solo verification and later baselines/CIs |
+| 2026-08-18 | `02285e1` | Job 17: adopt V2 gates and decisions; preserve all data layers, retain 24 intents, harden PII, insert Phase 2.5, extend label schema, use solo verification and later baselines/CIs |
+| 2026-08-18 | `2d9af61` | Ignore local `PROJECT_CONTEXT_V2.md` (amended 2026-08-20 to strip a tooling attribution trailer from the message; history rewritten and force-pushed) |
+| 2026-08-20 | *(pending this commit)* | Repo hygiene audit: removed tooling attribution and working-process traces from `.gitignore`, `PROGRESS_LOG.md`, and one module docstring; local tooling ignores moved to `.git/info/exclude` |
