@@ -899,4 +899,4 @@ At the end of each working session (**`wrap`**):
 | 2026-08-18 | `9f7e5ce` | Phase 3 Job 16: initial auto-labelling pipeline (`src/label/auto_label.py`), `anthropic` dependency added, 12 tests; no paid/provider call |
 | 2026-08-18 | `02285e1` | Job 17: adopt V2 gates and decisions; preserve all data layers, retain 24 intents, harden PII, insert Phase 2.5, extend label schema, use solo verification and later baselines/CIs |
 | 2026-08-18 | `2d9af61` | Ignore local `PROJECT_CONTEXT_V2.md` (amended 2026-08-20 to strip a tooling attribution trailer from the message; history rewritten and force-pushed) |
-| 2026-08-20 | *(pending this commit)* | Repo hygiene audit: removed tooling attribution and working-process traces from `.gitignore`, `PROGRESS_LOG.md`, and one module docstring; local tooling ignores moved to `.git/info/exclude` |
+| 2026-08-20 | `275bf36` | Repo hygiene audit: removed tooling attribution and working-process traces from `.gitignore`, `PROGRESS_LOG.md`, and one module docstring; local tooling ignores moved to `.git/info/exclude` |
