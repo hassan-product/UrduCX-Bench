@@ -217,6 +217,7 @@ __marimo__/
 data/raw/
 data/interim/
 outputs/cache/
+spike/
 *.sqlite
 *.sqlite3
 

@@ -1,8 +1,8 @@
 """Redact PII from cleaned review text before it is sent to any external API.
 
-Regex-based redaction for phone numbers, CNIC-shaped numbers, email addresses, and
-generic long account/reference numbers. This must run on the Phase 3 sample before
-`auto_label.py` sends any review text to an LLM provider.
+Matching uses a same-length ASCII-digit view so Pakistani PII written with ASCII,
+Urdu-Indic, or Arabic-Indic numerals can be found without altering the source text.
+Only typed PII spans are redacted; transaction references and other long facts survive.
 """
 
 from __future__ import annotations
@@ -17,22 +17,35 @@ from typing import Any
 DEFAULT_INPUT = Path("data/interim/reviews_phase3_sample.jsonl")
 DEFAULT_OUTPUT = Path("data/interim/reviews_phase3_sample_scrubbed.jsonl")
 
-# Applied in order, most specific first, so digits consumed by an earlier pattern
-# (now a placeholder token) cannot also match a later, looser pattern.
-_EMAIL_RE = r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}"
-_CNIC_DASHED_RE = r"\b\d{5}-\d{7}-\d\b"
-_CNIC_PLAIN_RE = r"\b\d{13}\b"
-_PHONE_MOBILE_RE = r"(?:\+92[-\s]?|0)3\d{2}[-\s]?\d{7}\b"
-_PHONE_LANDLINE_RE = r"\b0\d{2,4}[-\s]\d{6,8}\b"
-_ACCOUNT_RE = r"\b\d{9,}\b"
-
+# Patterns are applied in priority order. The named `pii` group allows account/name
+# context to remain visible while only the private value is replaced.
 _PATTERNS: tuple[tuple[str, str], ...] = (
-    ("email", _EMAIL_RE),
-    ("cnic", _CNIC_DASHED_RE),
-    ("cnic", _CNIC_PLAIN_RE),
-    ("phone", _PHONE_MOBILE_RE),
-    ("phone", _PHONE_LANDLINE_RE),
-    ("account", _ACCOUNT_RE),
+    ("email", r"(?P<pii>[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,})"),
+    ("iban", r"(?i)(?P<pii>PK\d{2}\s?[A-Z]{4}(?:\s?\d){16})(?!\d)"),
+    ("cnic", r"(?<!\d)(?P<pii>\d{5}-\d{7}-\d)(?!\d)"),
+    ("cnic", r"(?<!\d)(?P<pii>\d{13})(?!\d)"),
+    ("cnic", r"(?<!\d)(?P<pii>\d{3}-\d{2}-\d{6})(?!\d)"),
+    ("phone", r"(?<!\d)(?P<pii>(?:\+92|0092|92|0)?3\d{2}[-\s]?\d{7})(?!\d)"),
+    ("phone", r"(?<!\d)(?P<pii>0\d{2,4}[-\s]\d{6,8})(?!\d)"),
+    (
+        "account",
+        r"(?i)(?:\b(?:account|acct|a/c)\s*(?:number|no\.?|#)?|(?:اکاؤنٹ|اکاونٹ|حساب)\s*(?:نمبر)?)"
+        r"\s*[:=-]?\s*(?P<pii>\d(?:[- ]?\d){7,23})(?!\d)",
+    ),
+    (
+        "name",
+        r"(?:\b[Mm]y name is|\bI am)\s+"
+        r"(?P<pii>[A-Z][A-Za-z'-]*(?:\s+[A-Z][A-Za-z'-]*){0,3})(?=$|[,.!?])",
+    ),
+    (
+        "name",
+        r"(?i)\bmera na?am\s+"
+        r"(?P<pii>[A-Za-z][A-Za-z'-]*(?:\s+[A-Za-z][A-Za-z'-]*){0,3}?)\s+hain?\b",
+    ),
+    (
+        "name",
+        r"میرا نام\s+(?P<pii>[\u0600-\u06FF]+(?:\s+[\u0600-\u06FF]+){0,3}?)\s+ہے",
+    ),
 )
 
 _PLACEHOLDERS = {
@@ -40,21 +53,42 @@ _PLACEHOLDERS = {
     "cnic": "<CNIC>",
     "phone": "<PHONE>",
     "account": "<ACCOUNT>",
+    "iban": "<IBAN>",
+    "name": "<NAME>",
 }
 
 _COMPILED_PATTERNS = tuple((label, re.compile(pattern)) for label, pattern in _PATTERNS)
+_DIGIT_TRANSLATION = str.maketrans(
+    "۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩",
+    "01234567890123456789",
+)
+
+
+def normalize_for_matching(text: str) -> str:
+    """Return an equal-length ASCII-digit view used only to locate PII spans."""
+    return text.translate(_DIGIT_TRANSLATION)
 
 
 def scrub_text(text: str) -> tuple[str, Counter[str]]:
     """Redact PII from one string, returning the redacted text and per-type counts."""
-    scrubbed = text
+    matching_text = normalize_for_matching(text)
     counts: Counter[str] = Counter()
+    spans: list[tuple[int, int, str]] = []
     for label, pattern in _COMPILED_PATTERNS:
-        matches = pattern.findall(scrubbed)
-        if not matches:
-            continue
-        counts[label] += len(matches)
-        scrubbed = pattern.sub(_PLACEHOLDERS[label], scrubbed)
+        for match in pattern.finditer(matching_text):
+            start, end = match.span("pii")
+            overlaps = any(
+                start < existing_end and end > existing_start
+                for existing_start, existing_end, _ in spans
+            )
+            if overlaps:
+                continue
+            spans.append((start, end, label))
+            counts[label] += 1
+
+    scrubbed = text
+    for start, end, label in sorted(spans, reverse=True):
+        scrubbed = scrubbed[:start] + _PLACEHOLDERS[label] + scrubbed[end:]
     return scrubbed, counts
 
 

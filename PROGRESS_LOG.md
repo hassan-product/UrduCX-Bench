@@ -27,8 +27,8 @@ onward.
 |---|---|---|
 | 0 — Repo & environment setup | **Done** | Scaffold committed and pushed |
 | 1 — Data collection | **Done** | 17 products collected; ~107.8k unique reviews; validator printed; human reviewed localhost previews |
-| 2 — Cleaning, language & PII | **In progress** | Cleaning, product-ID remapping, deduplication, and deterministic language detection are implemented (54,519 kept); the initial PII scrubber has 16 passing tests but must be hardened for non-ASCII numerals and against over-scrubbing before any real API call |
-| 2.5 — Script-gap pilot | **Not started (new gate)** | Human must write 20 complaints in Urdu script, natural Roman Urdu, code-switched text, and English (80 items); run a small cached model comparison and record a go/no-go decision before paid auto-labelling |
+| 2 — Cleaning, language & PII | **Done** | 54,519 cleaned; hardened typed PII matching supports three numeral systems; 9,000-item derived scrubbed file and human audit completed without overwriting source layers |
+| 2.5 — Script-gap pilot | **In progress — awaiting human workbook** | Private workspace, 20-case Word guide, JSON template, and validator are built; maintainer will return the completed workbook before model evaluation |
 | 3 — Sampling & auto-labelling | **In progress** | The separate 9,000-item sample, 24-intent taxonomy, and initial cached/retryable auto-label pipeline are built; no paid call has occurred; pipeline must adopt the extended schema, strict value validation, and versioned cache keys after Phases 2 and 2.5 pass |
 | 4 — Human verification | Not started | Blocked on Phase 3 |
 | 5 — Benchmark task building | Not started | Blocked on Phase 4 |
@@ -592,6 +592,46 @@ with `certifi==2026.7.22` for verified TLS. All raw data stays local and is git-
   cache key, and validation must be revised only after Phases 2 and 2.5 pass. No Anthropic
   key/account was provided or used and no real provider request has been made.
 
+#### Job 18 — Phase 2 hardened PII gate (complete)
+
+- Replaced destructive broad digit-run redaction with prioritized typed matching for email,
+  Pakistani phone, CNIC/legacy NIC, PK IBAN, context-supported account numbers, and explicit
+  self-identification phrases. Matching uses a same-length ASCII-digit view supporting ASCII,
+  Urdu-Indic, and Arabic-Indic numerals while replacements apply only to the original span.
+- Added must-survive coverage for amounts, dates, transaction/reference IDs, package prices,
+  ticket/meter/order numbers, and data quantities. Raw, cleaned, and sampled files remain
+  unchanged; the scrubber wrote a separate 9,000-record derived file.
+- Corrected an initially weak audit design. The final local page separates 24 synthetic positive
+  challenges (six PII types across all four language forms) from 50 real records selected for
+  PII-like risk cues and collateral-damage inspection. Synthetic challenges never enter the
+  corpus or any release artifact.
+- Human accepted the scrubber behavior. The reviewed real Urdu-script records contained no
+  observed phone, account, CNIC, or similar private values, so they could not provide positive
+  real-data examples. This absence is recorded rather than overstated: multilingual positive
+  capability is supported by isolated tests/challenges, while real-data review supports the
+  residual-exposure and no-collateral-damage checks. Pattern-based residual risk remains in
+  `LIMITATIONS.md`.
+- Verification: `ruff check .` clean and 102 tests passing at the Phase 2 closeout.
+
+#### Job 19 — Phase 2.5 human-authoring contract (in progress)
+
+- Added an ignored `spike/` workspace that cannot enter `data/release/`, plus a generator for
+  `spike/phase2_5/complaints.json`. It creates 20 blank slots and never generates human-owned
+  complaint text.
+- Added strict validation requiring exactly four variants per complaint, a taxonomy-valid gold
+  intent, an exact fact span in every variant, unique IDs, and coverage of the five V2 scenario
+  groups. Existing human work is never overwritten unless `--force` is explicit.
+- Added a reproducible private Word workbook with 20 distinct high-value case guides, official
+  definitions, two complete approved example complaints per case, scenario briefs, boundary
+  reminders, and blank fields for all four human-written variants. Its appendix lists all 24 valid
+  taxonomy labels. The workbook is generated under ignored `spike/` and cannot enter release data.
+- The private blank JSON template and Word workbook now exist locally. The maintainer will complete
+  the workbook separately and share it when ready; the next engineering step is to transfer that
+  human-authored content into the private JSON schema, validate all 80 variants, and present any
+  semantic or structural issues for approval. No pilot model call has occurred.
+- Verification: `ruff check .` clean, 112 tests passing, and the CLI correctly rejects the blank
+  template as incomplete.
+
 ---
 
 ## 4. Key decisions and their reasoning
@@ -762,35 +802,31 @@ with `certifi==2026.7.22` for verified TLS. All raw data stays local and is git-
   is written for the release dataset, but the same reasoning applies to sending
   unredacted text to any external API — phone numbers, CNIC numbers, and emails should
   not leave the local machine unredacted.
-- **Resolution status:** The initial scrubber is built and tested (Job 15), and the
-  auto-label engineering foundation exists (Job 16). V2 keeps this issue open until the
-  broad account-number rule is replaced by typed/anchored patterns, non-ASCII numeral
-  coverage is added, must-survive facts are tested, the local sample is scrubbed into a
-  new file, and the maintainer completes the stratified 50-record inspection. No external
-  API call may occur before those checks pass. The previously-uncommitted language code
-  was committed in Job 12.
+- **Resolution status:** Closed in Job 18. Typed/anchored patterns replaced the broad
+  account-number rule, three numeral systems and must-survive facts are tested, the local
+  sample was written to a separate scrubbed derivative, and the corrected human audit was
+  accepted. No external API call occurred. The previously-uncommitted language code was
+  committed in Job 12.
 
 ---
 
 ## 6. Work pending / next steps
 
-**Immediate next action: harden Phase 2 PII protection. Do not run paid auto-labelling yet.**
+**Immediate next action: wait for the maintainer's completed Phase 2.5 Word workbook. Do not run
+paid auto-labelling yet.**
 
 Required order under `PROJECT_CONTEXT_V2.md`:
 
-1. Add non-destructive numeral normalization and typed Pakistani PII patterns; remove the
-  broad digit-run account rule that can consume transaction references.
-2. Expand tests to include non-ASCII numerals and at least eight must-survive amount/date/
-  transaction/price/data examples.
-3. Run the hardened scrubber into a new derived file, preserving raw, cleaned, and sampled
-  source files unchanged.
-4. Human inspects 50 records stratified across all four language classes and records zero
-  visible PII plus zero destroyed amounts/dates. Stop and report Phase 2 acceptance.
-5. After approval, build Phase 2.5: 20 human-authored complaints × four language forms,
-  cached model runner, gap report, spend report, and human go/no-go decision.
-6. Only after that decision, revise Job 16 to the extended schema, strict validation, and
+1. Maintainer completes and returns the private Word workbook with 20 complaints, four language
+  forms per complaint, exact fact spans, and gold taxonomy intents.
+2. Transfer the returned workbook into `spike/phase2_5/complaints.json`; run the strict validator
+  and have the maintainer resolve any semantic-equivalence or taxonomy issues across 80 variants.
+3. Decide the small accessible model roster, then build and run the cached fixed-prompt comparison,
+   gap report, and spend report.
+4. Human records the Phase 2.5 go/no-go decision.
+5. Only after that decision, revise Job 16 to the extended schema, strict validation, and
   versioned cache identity; test 10–25 paid items and project cost before the 9,000 run.
-7. After the real run, build `label_stats.py`, inspect rare intents/T2/entity candidate
+6. After the real run, build `label_stats.py`, inspect rare intents/T2/entity candidate
   coverage, and top up only where evidence requires it.
 
 **Phase 1 acceptance criteria (from `PROJECT_CONTEXT.md`) — met:**
@@ -804,9 +840,10 @@ Required order under `PROJECT_CONTEXT_V2.md`:
   rating: **done** (9,000 sampled, seeded, reproducible, report on disk).
 - `config/taxonomy.yaml` with human-written definitions and 2 positive + 1 negative
   example per intent: **done** (all 24 intents, human-approved batch by batch).
-- Initial PII scrubber engineering: **done (Job 15)**; V2 hardening and stratified manual
-  check: **not started**.
-- Phase 2.5 pilot: **not started** and now required before paid auto-labelling.
+- Hardened PII gate: **done (Job 18)** with derived output, tests, challenge matrix, real-data
+  risk audit, and explicit documentation of absent real Urdu-script positive examples.
+- Phase 2.5 pilot: **authoring framework done; waiting for the maintainer's completed workbook;
+  content transfer, validation, and model run pending**.
 - Auto-labelling foundation with caching, retries, resume, and spend logging: **built and
   tested (Job 16)**; V2 extended schema/cache/validation revision: **not started**; no
   real labelling run has happened.
@@ -837,7 +874,7 @@ python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 pip install -e .
 pre-commit install
-ruff check . && pytest   # should pass — currently 79 tests
+ruff check . && pytest   # should pass — currently 112 tests
 cp .env.example .env     # fill in real keys only when Phase 3/6 needs them
 ```
 

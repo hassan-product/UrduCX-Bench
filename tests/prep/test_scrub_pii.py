@@ -40,6 +40,42 @@ from src.prep.scrub_pii import load_jsonl, scrub_records, scrub_text, write_json
             "Account number <ACCOUNT> shows wrong balance",
         ),
         (
+            "میرا شناختی کارڈ ۴۲۱۰۱-۱۲۳۴۵۶۷-۱ ہے",
+            "میرا شناختی کارڈ <CNIC> ہے",
+        ),
+        (
+            "میرا فون ۰۳۰۰۱۲۳۴۵۶۷ ہے",
+            "میرا فون <PHONE> ہے",
+        ),
+        (
+            "رقم اکاؤنٹ نمبر ١٢٣٤٥٦٧٨٩٠١٢ میں بھیجی",
+            "رقم اکاؤنٹ نمبر <ACCOUNT> میں بھیجی",
+        ),
+        (
+            "IBAN PK36SCBL0000001123456702 is mine",
+            "IBAN <IBAN> is mine",
+        ),
+        (
+            "Old NIC 123-45-678901 was registered",
+            "Old NIC <CNIC> was registered",
+        ),
+        (
+            "My name is Ali Khan",
+            "My name is <NAME>",
+        ),
+        (
+            "mera naam Ali Khan hai",
+            "mera naam <NAME> hai",
+        ),
+        (
+            "Mera nam Sultan Joseph hain",
+            "Mera nam <NAME> hain",
+        ),
+        (
+            "میرا نام علی خان ہے",
+            "میرا نام <NAME> ہے",
+        ),
+        (
             "Balance kat gaya, phone 03211234567 aur email ali@x.com dono",
             "Balance kat gaya, phone <PHONE> aur email <EMAIL> dono",
         ),
@@ -71,6 +107,27 @@ def test_scrub_text_counts_each_redaction_by_type() -> None:
 def test_scrub_text_no_pii_returns_empty_counts() -> None:
     scrubbed, counts = scrub_text("Network is slow in my area")
     assert scrubbed == "Network is slow in my area"
+    assert counts == {}
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "I lost Rs 5000 from my balance",
+        "مجھے ۵۰۰۰ روپے واپس چاہئیں",
+        "Transaction happened on 15/01/2026",
+        "Reference ID 123456789012345 is still pending",
+        "Txn ref 987654321012 was rejected",
+        "Weekly package price is 1500 rupees",
+        "I purchased 2 GB data",
+        "Order 123456789 has not arrived",
+        "Ticket number 123456789012 is open",
+        "Meter number 1234567890 is on the bill",
+    ],
+)
+def test_scrub_text_preserves_non_pii_facts(text: str) -> None:
+    scrubbed, counts = scrub_text(text)
+    assert scrubbed == text
     assert counts == {}
 
 
