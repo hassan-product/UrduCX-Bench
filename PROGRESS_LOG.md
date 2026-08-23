@@ -28,7 +28,7 @@ onward.
 | 0 — Repo & environment setup | **Done** | Scaffold committed and pushed |
 | 1 — Data collection | **Done** | 17 products collected; ~107.8k unique reviews; validator printed; human reviewed localhost previews |
 | 2 — Cleaning, language & PII | **Done** | 54,519 cleaned; hardened typed PII matching supports three numeral systems; 9,000-item derived scrubbed file and human audit completed without overwriting source layers |
-| 2.5 — Script-gap pilot | **In progress — awaiting human workbook** | Private workspace, 20-case Word guide, JSON template, and validator are built; maintainer will return the completed workbook before model evaluation |
+| 2.5 — Script-gap pilot | **In progress — data complete, runner pending** | Maintainer returned the completed 20-case workbook; all 80 human-authored variants transferred, corrected, and passing strict validation. Blocked on the model roster and pilot runner |
 | 3 — Sampling & auto-labelling | **In progress** | The separate 9,000-item sample, 24-intent taxonomy, and initial cached/retryable auto-label pipeline are built; no paid call has occurred; pipeline must adopt the extended schema, strict value validation, and versioned cache keys after Phases 2 and 2.5 pass |
 | 4 — Human verification | Not started | Blocked on Phase 3 |
 | 5 — Benchmark task building | Not started | Blocked on Phase 4 |
@@ -632,6 +632,35 @@ with `certifi==2026.7.22` for verified TLS. All raw data stays local and is git-
 - Verification: `ruff check .` clean, 112 tests passing, and the CLI correctly rejects the blank
   template as incomplete.
 
+#### Job 20 — Phase 2.5 workbook transfer and correction (complete)
+
+- The maintainer returned the completed workbook with all 20 cases and all 80 variants written by
+  hand. No variant was machine-written, so the pilot's Roman Urdu arm — the condition the pilot
+  actually measures — carries authentic human orthographic variance (`badger` for `baghair`,
+  `oending`, `tupees`, `bajwood`/`bawjood`, `duphear`/`dupehar`).
+- Transferred the workbook into `spike/phase2_5/complaints.json` via a re-runnable extractor that
+  reads the `.docx` directly, so the transfer can be reproduced from source rather than retyped.
+  Working from a PDF rendering was rejected: RTL text is visually reordered by extraction and
+  would have silently corrupted the Urdu.
+- Audit before transfer found 76 of 80 `fact_span` values failing the exact-substring rule. The
+  maintainer had written summaries (`Rs 200, 1 mah` where the text says `200 rs`) or keyword lists
+  (`UPAISA, 10000, 6PM`). All 80 spans were replaced with exact contiguous substrings of their own
+  variant text; no complaint text was altered to make a span fit. This matters beyond the pilot —
+  T3 needs gold spans as literal character offsets.
+- Three semantic defects were found and fixed with explicit maintainer approval. The important one
+  was Case 15: Urdu, Roman Urdu, and code-switched all described a caller *posing* as Jazz staff,
+  but the English read `Someone from Jazz called me`, which would have flipped the gold label and
+  silently penalised the English arm. Also fixed Case 01 (code-switched said one week where the
+  other three said one month) and Case 10 (English dropped `TXN 512`).
+- Four stray keyboard-layout artifacts were removed — a single Urdu letter glued to the start of a
+  Roman Urdu or English variant. Every change is recorded in `spike/phase2_5/CHANGE_LOG.md`.
+- Verification: strict validator green on 20 complaints and 80 variants; the hardened PII scrubber
+  flags 0 of 80; 20 distinct valid taxonomy intents; all five required V2 scenario groups covered.
+  `ruff check .` clean, 112 tests passing. Pilot data stays under ignored `spike/`.
+- Recorded but not fixed: English variants run shorter than the other three forms (median 16 words
+  versus 19.5), worst at Cases 11 and 15. This is a covariate that could resemble a language
+  effect and belongs in the pilot report rather than in re-authored text.
+
 ---
 
 ## 4. Key decisions and their reasoning
@@ -812,15 +841,14 @@ with `certifi==2026.7.22` for verified TLS. All raw data stays local and is git-
 
 ## 6. Work pending / next steps
 
-**Immediate next action: wait for the maintainer's completed Phase 2.5 Word workbook. Do not run
-paid auto-labelling yet.**
+**Immediate next action: choose the Phase 2.5 model roster (`config/models.yaml` is still empty),
+then build the pilot runner. Do not run paid auto-labelling yet.**
 
 Required order under `PROJECT_CONTEXT_V2.md`:
 
-1. Maintainer completes and returns the private Word workbook with 20 complaints, four language
-  forms per complaint, exact fact spans, and gold taxonomy intents.
-2. Transfer the returned workbook into `spike/phase2_5/complaints.json`; run the strict validator
-  and have the maintainer resolve any semantic-equivalence or taxonomy issues across 80 variants.
+1. ~~Maintainer completes and returns the private Word workbook~~ **Done (Job 20).**
+2. ~~Transfer into `spike/phase2_5/complaints.json` and validate all 80 variants~~ **Done
+  (Job 20)** — validator green, spans corrected, three semantic defects fixed with approval.
 3. Decide the small accessible model roster, then build and run the cached fixed-prompt comparison,
    gap report, and spend report.
 4. Human records the Phase 2.5 go/no-go decision.
@@ -842,8 +870,8 @@ Required order under `PROJECT_CONTEXT_V2.md`:
   example per intent: **done** (all 24 intents, human-approved batch by batch).
 - Hardened PII gate: **done (Job 18)** with derived output, tests, challenge matrix, real-data
   risk audit, and explicit documentation of absent real Urdu-script positive examples.
-- Phase 2.5 pilot: **authoring framework done; waiting for the maintainer's completed workbook;
-  content transfer, validation, and model run pending**.
+- Phase 2.5 pilot: **authoring and data complete** — 20 human-authored complaints, 80 validated
+  variants, corrected spans, zero PII; **model roster, runner, and go/no-go decision pending**.
 - Auto-labelling foundation with caching, retries, resume, and spend logging: **built and
   tested (Job 16)**; V2 extended schema/cache/validation revision: **not started**; no
   real labelling run has happened.
