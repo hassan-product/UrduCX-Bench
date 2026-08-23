@@ -966,3 +966,4 @@ At the end of each working session (**`wrap`**):
 | 2026-08-18 | `2d9af61` | Ignore local `PROJECT_CONTEXT_V2.md` (amended 2026-08-20 to strip a tooling attribution trailer from the message; history rewritten and force-pushed) |
 | 2026-08-20 | `275bf36` | Repo hygiene audit: removed tooling attribution and working-process traces from `.gitignore`, `PROGRESS_LOG.md`, and one module docstring; local tooling ignores moved to `.git/info/exclude` |
 | 2026-08-21 | `422d2f0` | Complete Phase 2 hardened PII gate; add corrected multilingual audit, private Phase 2.5 authoring schema/validator, and reproducible Word workbook generator; pause pending completed human workbook |
+| 2026-08-23 | `dee6567` | Phase 2.5 Job 20: transfer the completed 20-case workbook into the private pilot JSON, correct all 80 fact spans, fix three approved semantic defects, and record the change log; data complete, roster and runner pending |
