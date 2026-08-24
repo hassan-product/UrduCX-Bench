@@ -28,7 +28,7 @@ onward.
 | 0 — Repo & environment setup | **Done** | Scaffold committed and pushed |
 | 1 — Data collection | **Done** | 17 products collected; ~107.8k unique reviews; validator printed; human reviewed localhost previews |
 | 2 — Cleaning, language & PII | **Done** | 54,519 cleaned; hardened typed PII matching supports three numeral systems; 9,000-item derived scrubbed file and human audit completed without overwriting source layers |
-| 2.5 — Script-gap pilot | **In progress — data complete, runner pending** | Maintainer returned the completed 20-case workbook; all 80 human-authored variants transferred, corrected, and passing strict validation. Blocked on the model roster and pilot runner |
+| 2.5 — Script-gap pilot | **Run complete — headline decision open** | Runner built and executed against 4 models. The script-gap hypothesis was **not supported**; a cross-language *consistency* effect and a systemic taxonomy defect were found instead. Taxonomy raised to v2; confirmation re-run in progress |
 | 3 — Sampling & auto-labelling | **In progress** | The separate 9,000-item sample, 24-intent taxonomy, and initial cached/retryable auto-label pipeline are built; no paid call has occurred; pipeline must adopt the extended schema, strict value validation, and versioned cache keys after Phases 2 and 2.5 pass |
 | 4 — Human verification | Not started | Blocked on Phase 3 |
 | 5 — Benchmark task building | Not started | Blocked on Phase 4 |
@@ -661,9 +661,96 @@ with `certifi==2026.7.22` for verified TLS. All raw data stays local and is git-
   versus 19.5), worst at Cases 11 and 15. This is a covariate that could resemble a language
   effect and belongs in the pilot report rather than in re-authored text.
 
+#### Job 21 — Phase 2.5 pilot roster and runner (complete)
+
+- Chose the roster after checking what the maintainer could actually reach: three Anthropic models
+  spanning the price range plus one Google model for a second vendor. `config/models.yaml` records
+  id, provider, local pricing, pacing, and optional effort/thinking settings per entry.
+- Added `src/pilot/roster.py` (loads and validates the roster; rejects unknown providers, duplicate
+  ids, missing fields) and `src/pilot/run_pilot.py` (fixed prompt, disk cache, retries, pacing,
+  scoring, spend report). Added `google-genai==2.19.0` to `requirements.txt`.
+- The classification prompt is rendered from `config/taxonomy.yaml` and is byte-identical for every
+  model and every language form, so a score difference cannot come from how the question was asked.
+- Cache identity is `provider | model | prompt version | taxonomy version | text`, closing the
+  text-only weakness V2 Section 7 identified in `auto_label.py`. Verified in practice: re-running
+  the three Claude models served 12 of 12 from cache at $0.00.
+- 32 tests added (144 total), none touching the network; model replies are injected through fake
+  create functions.
+- Ran a 16-call smoke test before the 320-call run, per the V2 rule against unpiloted paid batches.
+  It paid for itself immediately (see Issue 12).
+
+#### Job 22 — First pilot run, corrected reporting, and findings (complete)
+
+- Full run: 320 classifications across 20 complaints, 4 language forms, 4 models. Spend $0.7472.
+- **The script-gap hypothesis was not supported.** Accuracy by language form was flat for all three
+  Claude models; for Haiku, natural Roman Urdu was the *highest*-scoring form (90%) rather than the
+  lowest. Every observed difference was 1-2 items out of 20, inside noise. This is not a ceiling
+  artifact: Haiku scored 80-90% and had room to show a gap.
+- **A taxonomy defect caused 61% of all errors.** `refund_request` and
+  `transfer_failed_money_deducted` both fully matched Case 05, with no rule to separate them; all
+  12 model answers (3 models x 4 forms) chose the failure over the request. A second pair,
+  `account_compromised` -> `refund_request`, had the same cause. Root cause: `refund_request`
+  describes a speech act while the other 23 intents describe failure types, so the two axes
+  collide on any complaint that reports a problem and asks for money back.
+- **A cross-language consistency effect was found instead.** Asking whether a model returns the
+  *same* answer for the same complaint in all four forms: Haiku 14/20, Sonnet 18/20, Opus 20/20.
+  Weaker models change their answer based on script alone while their average accuracy stays flat,
+  so accuracy hides the effect entirely and only the four-form paired design exposes it.
+- The effect is directional: of 9 deviations from a model's own majority answer, 7 came from Roman
+  Urdu (4) and code-switched (3) versus 1 each from Urdu script and English. Consistent with the
+  original hypothesis but far too few events to claim; recorded as a lead to test at scale.
+- Confirmed the two findings are independent: Case 05 never flipped across language forms, so
+  correcting its label cannot alter the consistency numbers.
+
+#### Job 23 — Taxonomy v2 precedence rule and pilot hardening (in progress)
+
+- Raised `config/taxonomy.yaml` to **version 2** with a failure-over-request precedence rule:
+  when a complaint names a concrete failure, that failure is the intent and the money-back ask is
+  recorded in the orthogonal `refund_requested` flag. `refund_request` as an intent is now reserved
+  for a bare request with no identifiable failure behind it. Sharpened `refund_request`,
+  `transfer_failed_money_deducted`, and `account_compromised`, and added a consent test to
+  `unauthorized_vas_deduction` (a wrong amount on a subscribed service is overcharging, not an
+  unauthorized charge). The version bump invalidates every cached reply by design.
+- Widened the retry ladder from 5 attempts/30s to 6/62s and Gemini pacing from 6s to 8s after the
+  free-tier quota dropped 43 calls (Issue 12). Added a test asserting total backoff outlasts a 40s
+  quota pause.
+- **Audit finding, not yet acted on:** the classification prompt sends only intent definitions
+  (3,797 chars) while `taxonomy.yaml` holds 10,797 chars of human-authored guidance. The positive
+  examples, negative examples, and negative rationales - written specifically to mark the boundary
+  against each intent's most likely confusion - never reach the model. Including them is a strong
+  candidate for the Phase 3 labelling run, where accuracy is what the spend buys. Deliberately not
+  changed mid-run so the v1/v2 comparison stays clean.
+- Audited the other 22 intents for the same defect. Fourteen carry no explicit boundary clause in
+  their definition, but most produced zero errors; the residual confusions are one-offs that look
+  like ordinary model error rather than definition defects. The refund overlap was the one
+  structural problem.
+- Verification: `ruff check .` clean, 147 tests passing. Confirmation re-run against taxonomy v2
+  was still executing at the time of writing.
+
 ---
 
 ## 4. Key decisions and their reasoning
+
+0. **Budget stays at $150; the reduced $20 scope was considered and declined (2026-08-25).** A
+  $20 cap would have ruled out the 9,000-item labelling run and forced the project down to a
+  standalone consistency study. The maintainer chose to retain the full budget and the full
+  five-task plan. Spend to date is $0.75, so money is not the binding constraint — maintainer
+  time is.
+
+0a. **`refund_request` loses to the underlying failure (taxonomy v2, 2026-08-25).** Asking for
+  money back is a speech act, not a failure type, so it collided with every intent describing a
+  concrete failure. Rather than delete the intent or relabel one case, the boundary was made
+  explicit: the failure is the intent, `refund_requested` records the ask, and `refund_request`
+  survives for bare requests. This also settles V2 open decision 5 in favour of collecting a
+  secondary intent rather than forcing a single label. Chosen over three alternatives —
+  relabelling Case 05 (leaves the rule broken), rewriting Case 05 (patches one case), and
+  accepting both silently (hides the ambiguity from the labels).
+
+0b. **The public headline is chosen from evidence, and the first candidate failed (2026-08-25).**
+  The script-gap claim that motivated the project is not supported by its own pilot. Recording
+  this plainly rather than reframing it protects the project's credibility; V2 Section 4 already
+  required the headline to follow the results rather than the reverse.
+
 
 1. **Project context stays local and untracked.** The active plan is now
   `PROJECT_CONTEXT_V2.md`; both it and the original `PROJECT_CONTEXT.md` are explicitly
@@ -837,21 +924,86 @@ with `certifi==2026.7.22` for verified TLS. All raw data stays local and is git-
   accepted. No external API call occurred. The previously-uncommitted language code was
   committed in Job 12.
 
+### Issue 11 — Live API keys pasted into the tracked `.env.example` (Phase 2.5)
+
+- **Symptom:** After being asked to add credentials, both the Anthropic and Google keys were
+  entered into `.env.example` rather than `.env`. `.env.example` is tracked and pushed; it exists
+  only to document variable names and must always hold empty values.
+- **Exposure check before any edit:** the only commit touching that file is the Phase 0 scaffold
+  (`78733bc`) and its stored version has every value empty; nothing was staged; no commit or push
+  had occurred. The keys never left the local working tree.
+- **Resolution:** values moved to `.env` (git-ignored, confirmed untracked), `.env.example`
+  restored from git. The maintainer independently revoked and reissued both keys.
+- **Residual risk:** a `git add -A` would have swept the file into a commit, and a push would have
+  published two live keys. A pre-commit guard that rejects any non-empty value in `.env.example`
+  is proposed but not yet implemented.
+
+### Issue 12 — Retired Gemini model and an incompatible thinking setting (Phase 2.5)
+
+- **Symptom:** all four Gemini calls in the first smoke test failed. The broad retry handler
+  swallowed the cause; a direct call surfaced `404 NOT_FOUND: models/gemini-2.5-flash is no longer
+  available to new users`, directing new accounts to `gemini-3.6-flash`.
+- **Second failure on the replacement:** `gemini-3.6-flash` rejects `thinking_budget=0` with a 400,
+  which the runner was sending unconditionally to keep reasoning tokens out of a single-label
+  classification.
+- **Resolution:** roster switched to `gemini-3.6-flash`; the zero thinking budget became an
+  optional per-model `disable_thinking` flag rather than a hardcoded call parameter.
+- **Lesson:** the 16-call smoke test caught both failures before the 320-call run, which is exactly
+  what the V2 rule against unpiloted paid batches is for.
+
+### Issue 13 — Failed calls were scored as wrong answers (Phase 2.5)
+
+- **Symptom:** the first full run reported Gemini at 44% accuracy, far below the Claude models.
+- **Cause:** 43 of its 80 calls never returned - the free-tier quota answers with a 429 and a ~40s
+  retry hint, which the 30s backoff ladder could not outlast - and the report counted each
+  unanswered call as an incorrect answer. Of the 37 it did answer, Gemini scored 95%.
+- **Why it mattered:** a rate-limited run masqueraded as a poor-quality model. Left uncorrected it
+  would have produced a false and publicly unfair comparison between two vendors.
+- **Resolution:** accuracy is now computed over answered items only, with unanswered calls reported
+  separately in a health column; backoff widened past the quota pause. Two tests pin the behaviour,
+  including one asserting an unparseable *reply* still counts against accuracy while a failed
+  *call* does not.
+
+### Issue 14 — Repo-wide formatter run pulled unrelated files into the change set (Phase 2.5)
+
+- **Symptom:** `ruff check --fix` and `ruff format` were run across the whole repository rather
+  than the files being edited, modifying 26 unrelated modules and tests.
+- **Assessment:** all changes were confirmed formatting-only (whitespace, line reflowing) with no
+  behaviour change, but they did not belong in a feature commit and would have made review
+  impossible.
+- **Resolution:** all unrelated files reverted; the commit is scoped to the roster, runner, tests,
+  taxonomy, and requirements. The repository remains not fully `ruff format`-clean, which is
+  pre-existing and unchanged - `ruff check .` is the standard this project verifies against.
+
 ---
 
 ## 6. Work pending / next steps
 
-**Immediate next action: choose the Phase 2.5 model roster (`config/models.yaml` is still empty),
-then build the pilot runner. Do not run paid auto-labelling yet.**
+**Immediate next action: finish the taxonomy-v2 confirmation re-run, then have the maintainer
+choose the public headline. Do not run paid auto-labelling until that choice is made.**
 
 Required order under `PROJECT_CONTEXT_V2.md`:
 
 1. ~~Maintainer completes and returns the private Word workbook~~ **Done (Job 20).**
 2. ~~Transfer into `spike/phase2_5/complaints.json` and validate all 80 variants~~ **Done
   (Job 20)** — validator green, spans corrected, three semantic defects fixed with approval.
-3. Decide the small accessible model roster, then build and run the cached fixed-prompt comparison,
-   gap report, and spend report.
-4. Human records the Phase 2.5 go/no-go decision.
+3. ~~Decide the model roster; build and run the cached fixed-prompt comparison~~ **Done
+  (Jobs 21–22)** — 4 models, 320 classifications, $0.75, gap report and spend report on disk.
+4. **Open — the Phase 2.5 decision is now a headline choice, not a go/no-go.** The script-gap
+  hypothesis failed; V2's gate says report rather than abandon. The maintainer picks between:
+  (a) cross-language **consistency** — supported by the data already collected;
+  (b) **T4 policy over-authorization** — V2's named backup, untested, needs new authoring;
+  (c) **harder complaints** and a retest of the original gap hypothesis.
+  Recommendation on the evidence: (a). It needs no new task family, and the four-form paired
+  design that produces it is the project's distinguishing property.
+5. Confirm the v2 re-run clears the 14 refund-boundary errors and leaves consistency at 14/18/20.
+6. Re-run Gemini once its free-tier quota resets for a genuine second-vendor reading.
+
+**Consequence of choosing (a), to weigh before committing:** T2 stops being one task among five and
+becomes the centrepiece, so its size drives the result's credibility. Twenty four-form sets give a
+margin of error near ±20 points; roughly 100 sets bring that to about ±9. At ~6 minutes per set
+when the Roman Urdu arm is mined from the existing corpus rather than written, 100 sets is roughly
+10 hours of maintainer authoring. Phase 4's 1,000 verifications remain the other large human cost.
 5. Only after that decision, revise Job 16 to the extended schema, strict validation, and
   versioned cache identity; test 10–25 paid items and project cost before the 9,000 run.
 6. After the real run, build `label_stats.py`, inspect rare intents/T2/entity candidate
@@ -870,8 +1022,12 @@ Required order under `PROJECT_CONTEXT_V2.md`:
   example per intent: **done** (all 24 intents, human-approved batch by batch).
 - Hardened PII gate: **done (Job 18)** with derived output, tests, challenge matrix, real-data
   risk audit, and explicit documentation of absent real Urdu-script positive examples.
-- Phase 2.5 pilot: **authoring and data complete** — 20 human-authored complaints, 80 validated
-  variants, corrected spans, zero PII; **model roster, runner, and go/no-go decision pending**.
+- Phase 2.5 pilot: **run complete (Jobs 21–23)** — 20 human-authored complaints, 80 validated
+  variants, 4 models, 320 classifications, $0.75. Script-gap hypothesis not supported; consistency
+  effect and a taxonomy defect found instead; taxonomy raised to v2. **Headline choice open.**
+- Phase 3 prompt improvement identified: the labelling prompt currently sends only intent
+  definitions and omits the human-authored positive/negative examples that encode each boundary.
+  Test that head-to-head before spending on the 9,000-item run.
 - Auto-labelling foundation with caching, retries, resume, and spend logging: **built and
   tested (Job 16)**; V2 extended schema/cache/validation revision: **not started**; no
   real labelling run has happened.
@@ -967,3 +1123,4 @@ At the end of each working session (**`wrap`**):
 | 2026-08-20 | `275bf36` | Repo hygiene audit: removed tooling attribution and working-process traces from `.gitignore`, `PROGRESS_LOG.md`, and one module docstring; local tooling ignores moved to `.git/info/exclude` |
 | 2026-08-21 | `422d2f0` | Complete Phase 2 hardened PII gate; add corrected multilingual audit, private Phase 2.5 authoring schema/validator, and reproducible Word workbook generator; pause pending completed human workbook |
 | 2026-08-23 | `dee6567` | Phase 2.5 Job 20: transfer the completed 20-case workbook into the private pilot JSON, correct all 80 fact spans, fix three approved semantic defects, and record the change log; data complete, roster and runner pending |
+| 2026-08-25 | _(this commit)_ | Phase 2.5 Jobs 21–23: pilot roster and runner, 4-model 320-classification run for $0.75, corrected accuracy reporting, taxonomy v2 failure-over-request precedence rule, widened retry backoff; script-gap hypothesis not supported, consistency effect found |

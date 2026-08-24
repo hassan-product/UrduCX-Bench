@@ -1,12 +1,27 @@
 # Definitions and examples are human-owned and added during benchmark design.
 # Approved 2026-08-17. Human authored definitions/examples; negative examples encode
 # the boundary against the intent's most likely confusion.
-version: 1
+#
+# v2 (2026-08-25) adds the failure-over-request precedence rule. The Phase 2.5 pilot
+# found that a complaint naming a concrete failure AND asking for money back matched
+# two definitions with no rule to separate them: 12 of 12 model answers chose the
+# failure over the request, and the pair caused 61% of all pilot errors. Asking for
+# money back is a speech act, not a failure type, so it is recorded in the orthogonal
+# refund_requested flag and only becomes the intent when it is the whole complaint.
+#
+# PRECEDENCE RULE: when a complaint names a concrete underlying failure, that failure
+# is the intent. Set refund_requested = true to record the money-back ask, and use
+# intent_secondary = refund_request where a secondary intent is collected.
+version: 2
 intents:
   # A. Billing & Charges
   - id: unauthorized_vas_deduction
     family: billing_and_charges
-    definition: Money was deducted for a value-added service the user says they never subscribed to.
+    definition: >-
+      Money was deducted for a value-added service the user says they never subscribed
+      to. The test is consent, not the presence of a service: a charge for a service
+      the user did subscribe to is not unauthorized, and a wrong amount on a subscribed
+      service is overcharging_dispute.
     positive_examples:
       - "Rs 30 katha gaya subscription k naam pe, maine kabhi subscribe nahi kiya"
       - "Every week 50 rupees is deducted for some VIP/game service I never activated"
@@ -46,14 +61,22 @@ intents:
       amount for a specific transaction; closer to feature_request_or_ux_complaint.
   - id: refund_request
     family: billing_and_charges
-    definition: User explicitly asks for money to be returned.
+    definition: >-
+      The request for money back is the entire complaint: the user names no specific
+      underlying failure, or the failure is already known/closed and they are only
+      chasing repayment. If the message also describes a concrete failure (failed
+      transfer, unactivated package, unauthorized charge, compromised account), label
+      that failure instead and set refund_requested = true.
     positive_examples:
       - "Please refund my money, transaction fail ho gayi thi"
       - "I want my Rs 1500 back, the service was never delivered"
-    negative_example: "This app took my money and never gave the service, scam!"
+    negative_example: >-
+      Me ne 3000 transfer kea, pese kat gae but receive nahi hue. Mere pese wapis kea jae.
     negative_rationale: >-
-      Describes the same underlying problem but never actually asks for a refund;
-      it's a complaint/accusation, not a request for money back.
+      Names a concrete failure (a failed transfer with the balance still deducted), so
+      the failure is the intent - transfer_failed_money_deducted - and the money-back
+      ask is recorded in refund_requested. Reserve refund_request for a bare request
+      with no identifiable failure behind it.
 
   # B. Access & Account
   - id: login_failure
@@ -110,7 +133,10 @@ intents:
   # C. Money Movement
   - id: transfer_failed_money_deducted
     family: money_movement
-    definition: A money transfer failed to reach the recipient, but the sender's balance was still reduced.
+    definition: >-
+      A money transfer failed to reach the recipient, but the sender's balance was
+      still reduced. This remains the intent even when the user also asks for their
+      money back; the refund ask is recorded separately in refund_requested.
     positive_examples:
       - "Paisay bhejay dost ko, uske paas nahi pohanchay lekin mera balance kat gaya"
       - "Sent Rs 5000 to my brother, transaction shows failed but the amount is still deducted from my account"
@@ -182,7 +208,10 @@ intents:
       transaction itself, this is a refund_request or dispute scenario.
   - id: account_compromised
     family: fraud_and_safety
-    definition: User's account was accessed or used by someone else without authorization.
+    definition: >-
+      User's account was accessed or used by someone else without authorization. This
+      remains the intent even when the user also demands the money back; the refund
+      ask is recorded separately in refund_requested.
     positive_examples:
       - "Mere account se paisay nikal gaye jo maine khud nahi nikale, kisi aur ne access kar liya"
       - "Someone logged into my account and made transactions I never authorized"

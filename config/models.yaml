@@ -1,2 +1,41 @@
-# Populated when the evaluation roster is approved.
-models: []
+# Phase 2.5 script-gap pilot roster.
+#
+# Each entry is one system under test. Prices are per million tokens and are used
+# only to estimate spend locally; they are not a bill. Google AI Studio free-tier
+# usage is priced at zero here and paced conservatively to stay inside its
+# requests-per-minute allowance.
+version: 1
+models:
+  - id: claude-haiku-4-5
+    provider: anthropic
+    label: Claude Haiku 4.5
+    price_per_mtok_input: 1.0
+    price_per_mtok_output: 5.0
+    min_request_interval: 0.5
+
+  - id: claude-sonnet-5
+    provider: anthropic
+    label: Claude Sonnet 5
+    price_per_mtok_input: 3.0
+    price_per_mtok_output: 15.0
+    min_request_interval: 0.5
+    effort: low
+
+  - id: claude-opus-5
+    provider: anthropic
+    label: Claude Opus 5
+    price_per_mtok_input: 5.0
+    price_per_mtok_output: 25.0
+    min_request_interval: 0.5
+    effort: low
+
+  # gemini-2.5-flash is retired for new API accounts; Google's own 404 message
+  # directs new users to gemini-3.6-flash. That model rejects a zero thinking
+  # budget, so reasoning tokens stay enabled here.
+  - id: gemini-3.6-flash
+    provider: google
+    label: Gemini 3.6 Flash
+    price_per_mtok_input: 0.0
+    price_per_mtok_output: 0.0
+    # 6s was not enough headroom against the free-tier quota; see PROGRESS_LOG Job 22.
+    min_request_interval: 8.0
