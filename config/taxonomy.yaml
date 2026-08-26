@@ -15,6 +15,12 @@
 version: 2
 intents:
   # A. Billing & Charges
+  # NOTE: users write "scam", "fraud" and "unauthorized" to describe exactly this intent -
+  # a provider charge they never consented to - not third-party crime. Keyword retrieval on
+  # those words returns these complaints, so a confusion matrix over keyword-retrieved
+  # candidates measures the retrieval, not this boundary. Checked 2026-08-27 against 23 such
+  # candidates: every one belonged here. The boundary against account_compromised and
+  # scam_impersonation_report holds and needs no precedence rule.
   - id: unauthorized_vas_deduction
     family: billing_and_charges
     definition: >-
@@ -196,6 +202,15 @@ intents:
     negative_rationale: >-
       Describes a genuine agent interaction (poor service), not someone falsely
       impersonating staff.
+  # OUT OF CHANNEL (2026-08-27). Zero examples in 54,519 reviews, under both a keyword
+  # search and a scenario search requiring counterparty + payment-proof + forgery +
+  # non-receipt together. The app behaves correctly in this scam - a counterparty deceives
+  # a merchant - so there is nothing to complain to the app about and the victim goes to
+  # the police instead. Contrast scam_impersonation_report, which is well represented
+  # because the fraudster poses as the company. Retained, not merged: an operator-side
+  # complaint system meets this routinely, and folding it into scam_impersonation_report
+  # would conflate counterparty fraud with company impersonation. Expect no support for
+  # this intent from any app-store-derived release. See LIMITATIONS.md.
   - id: fake_payment_screenshot
     family: fraud_and_safety
     definition: A seller/buyer used a forged payment screenshot to claim a transaction happened when it didn't.

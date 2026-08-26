@@ -30,6 +30,7 @@ DEFAULT_CACHE_DIR = Path("data/interim/label_cache")
 DEFAULT_MODEL = "claude-haiku-4-5"
 
 MIN_REQUEST_INTERVAL = 0.5
+LABEL_EFFORT = "low"  # classification, not reasoning
 MAX_ATTEMPTS = 5
 BACKOFF_BASE_SECONDS = 2.0
 
@@ -38,8 +39,37 @@ BACKOFF_BASE_SECONDS = 2.0
 PRICE_PER_MTOK_INPUT = 1.0
 PRICE_PER_MTOK_OUTPUT = 5.0
 
-REQUIRED_LABEL_FIELDS = ("intent", "language", "severity", "confidence", "rationale")
+# Bump when build_system_prompt changes shape: the rendered prompt is part of cache
+# identity, so a prompt change must invalidate every previously cached reply.
+PROMPT_VERSION = 3
+
+UNCLASSIFIABLE = "unclassifiable"
+
+# Extended per the Phase 3 diagnostic (spike/phase3_diag): 11.8% of real reviews carry a
+# second distinct intent, so single-label discards signal on ~1 in 8. `refund_requested`
+# and `intent_secondary` are named by the taxonomy v2 precedence rule itself.
+REQUIRED_LABEL_FIELDS = (
+    "intent",
+    "intent_secondary",
+    "refund_requested",
+    "language",
+    "severity",
+    "confidence",
+    "rationale",
+)
 RETRYABLE_ERRORS = (RateLimitError, APIStatusError)
+
+
+def is_retryable(error: Exception) -> bool:
+    """Only rate limits and server faults are worth retrying.
+
+    A 400 (malformed request, bad schema) fails identically every time; retrying it
+    multiplies a single mistake by MAX_ATTEMPTS across the whole run.
+    """
+    if isinstance(error, RateLimitError):
+        return True
+    status = getattr(error, "status_code", None)
+    return status is not None and (status == 429 or status >= 500)
 
 SleepFunction = Callable[[float], None]
 ClockFunction = Callable[[], float]
@@ -77,26 +107,90 @@ def content_hash(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
+def cache_key(text: str, *, model: str, taxonomy_version: int) -> str:
+    """Hash the full request identity, not just the text.
+
+    Keying on text alone lets one model serve another model's reply, and lets a
+    stale reply survive a prompt or taxonomy change. Mirrors `src/pilot/run_pilot.py`.
+    """
+    payload = "|".join(
+        (model, f"prompt_v{PROMPT_VERSION}", f"taxonomy_v{taxonomy_version}", text)
+    )
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
 def build_system_prompt(taxonomy: Taxonomy) -> str:
     """Render the taxonomy into an instruction prompt for the labelling call."""
     lines = [
         "You are labelling one customer-service review from a Pakistani telecom or "
-        "mobile-wallet app. Choose exactly one intent id from the list below, plus a "
+        "mobile-wallet app. Choose the single best intent id from the list below, plus a "
         "language and severity label, a confidence score, and a one-sentence rationale.",
         "",
         "Intents:",
     ]
-    lines.extend(f"- {intent.id}: {intent.definition}" for intent in taxonomy.intents)
+    for intent in taxonomy.intents:
+        lines.append(f"- {intent.id} ({intent.family})")
+        lines.append(f"    definition: {intent.definition.strip()}")
+        for example in intent.positive_examples:
+            lines.append(f"    positive: {example}")
+        lines.append(f"    NOT this intent: {intent.negative_example}")
+        lines.append(f"    because: {intent.negative_rationale.strip()}")
     lines.append("")
     lines.append(f"Language must be one of: {', '.join(taxonomy.languages)}")
     lines.append(f"Severity must be one of: {', '.join(taxonomy.severities)}")
     lines.append("")
     lines.append(
-        "Respond with a single JSON object only, no prose, matching exactly: "
-        '{"intent": str, "language": str, "severity": str, "confidence": float in [0,1], '
-        '"rationale": str (one sentence)}.'
+        f'Use "{UNCLASSIFIABLE}" for the intent when no listed intent genuinely fits - '
+        "praise, an unreadable fragment, or a subject none of the intents covers. Do not "
+        "force such a review into the nearest intent."
+    )
+    lines.append(
+        "Set intent_secondary only when the review reports a genuinely separate second "
+        "matter, not a restatement of the first; otherwise null."
+    )
+    lines.append(
+        "Set refund_requested independently of the intent: true whenever the user asks for "
+        "money back, even when the intent is the underlying failure (taxonomy v2 precedence)."
     )
     return "\n".join(lines)
+
+
+def build_response_schema(taxonomy: Taxonomy) -> dict[str, Any]:
+    """Constrain the reply to the taxonomy's own vocabulary.
+
+    Enum-bound fields make a hallucinated intent id structurally impossible rather than
+    merely unlikely, and remove the free-text JSON parse failures the diagnostic saw.
+    """
+    intent_ids = [intent.id for intent in taxonomy.intents]
+    return {
+        "type": "json_schema",
+        "schema": {
+            "type": "object",
+            "properties": {
+                "intent": {"type": "string", "enum": [*intent_ids, UNCLASSIFIABLE]},
+                "intent_secondary": {
+                    "anyOf": [{"type": "string", "enum": intent_ids}, {"type": "null"}]
+                },
+                "refund_requested": {"type": "boolean"},
+                "language": {"type": "string", "enum": list(taxonomy.languages)},
+                "severity": {"type": "string", "enum": list(taxonomy.severities)},
+                # The API rejects minimum/maximum on "number"; the range is enforced
+                # in parse_label_response instead.
+                "confidence": {"type": "number"},
+                "rationale": {"type": "string"},
+            },
+            "required": list(REQUIRED_LABEL_FIELDS),
+            "additionalProperties": False,
+        },
+    }
+
+
+def _bounded_confidence(value: Any) -> float:
+    """Coerce confidence into [0, 1]; the response schema cannot express the bound."""
+    confidence = float(value)
+    if not 0.0 <= confidence <= 1.0:
+        raise ValueError(f"confidence {confidence} outside [0, 1]")
+    return confidence
 
 
 def parse_label_response(raw_text: str) -> dict[str, Any]:
@@ -105,11 +199,14 @@ def parse_label_response(raw_text: str) -> dict[str, Any]:
     missing = [field for field in REQUIRED_LABEL_FIELDS if field not in payload]
     if missing:
         raise ValueError(f"Label response missing fields: {missing}")
+    secondary = payload["intent_secondary"]
     return {
         "intent": str(payload["intent"]),
+        "intent_secondary": None if secondary is None else str(secondary),
+        "refund_requested": bool(payload["refund_requested"]),
         "language": str(payload["language"]),
         "severity": str(payload["severity"]),
-        "confidence": float(payload["confidence"]),
+        "confidence": _bounded_confidence(payload["confidence"]),
         "rationale": str(payload["rationale"]),
     }
 
@@ -120,16 +217,27 @@ def call_model(
     model: str,
     system_prompt: str,
     review_text: str,
+    response_schema: dict[str, Any] | None = None,
     sleep_fn: SleepFunction = time.sleep,
 ) -> tuple[dict[str, Any], int, int]:
     """Call the model once for one review, retrying on rate limit/transient errors."""
     last_error: Exception | None = None
     for attempt in range(MAX_ATTEMPTS):
         try:
+            output_config: dict[str, Any] = {"effort": LABEL_EFFORT}
+            if response_schema is not None:
+                output_config["format"] = response_schema
             response = create_fn(
                 model=model,
                 max_tokens=300,
-                system=system_prompt,
+                output_config=output_config,
+                system=[
+                    {
+                        "type": "text",
+                        "text": system_prompt,
+                        "cache_control": {"type": "ephemeral"},
+                    }
+                ],
                 messages=[{"role": "user", "content": review_text}],
             )
             raw_text = "".join(
@@ -138,6 +246,8 @@ def call_model(
             label = parse_label_response(raw_text)
             return label, response.usage.input_tokens, response.usage.output_tokens
         except RETRYABLE_ERRORS as error:
+            if not is_retryable(error):
+                raise
             last_error = error
             if attempt == MAX_ATTEMPTS - 1:
                 break
@@ -175,12 +285,13 @@ def label_records(
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     """Label every record, serving cached responses first and pacing live calls."""
     system_prompt = build_system_prompt(taxonomy)
+    response_schema = build_response_schema(taxonomy)
     labeled: list[dict[str, Any]] = []
     spend = {"input_tokens": 0, "output_tokens": 0, "cache_hits": 0, "live_calls": 0}
 
     for record in records[:limit] if limit else records:
         text = str(record.get("text_scrubbed", ""))
-        key = content_hash(text)
+        key = cache_key(text, model=model, taxonomy_version=taxonomy.version)
         cached = load_cached_label(cache_dir, key)
         if cached is not None:
             spend["cache_hits"] += 1
@@ -192,6 +303,7 @@ def label_records(
                 model=model,
                 system_prompt=system_prompt,
                 review_text=text,
+                response_schema=response_schema,
                 sleep_fn=sleep_fn,
             )
             spend["input_tokens"] += input_tokens
@@ -203,6 +315,8 @@ def label_records(
             {
                 **record,
                 "label_intent": label["intent"],
+                "label_intent_secondary": label["intent_secondary"],
+                "label_refund_requested": label["refund_requested"],
                 "label_language": label["language"],
                 "label_severity": label["severity"],
                 "label_confidence": label["confidence"],

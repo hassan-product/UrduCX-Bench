@@ -6,13 +6,17 @@ import json
 
 import httpx
 import pytest
-from anthropic import RateLimitError
+from anthropic import APIStatusError, BadRequestError, RateLimitError
 from src.label.auto_label import (
+    REQUIRED_LABEL_FIELDS,
     RequestPacer,
+    build_response_schema,
     build_system_prompt,
+    cache_key,
     call_model,
     content_hash,
     estimate_spend_usd,
+    is_retryable,
     label_records,
     load_cached_label,
     parse_label_response,
@@ -20,15 +24,16 @@ from src.label.auto_label import (
 )
 from src.label.taxonomy import Intent, Taxonomy
 
-VALID_LABEL_JSON = json.dumps(
-    {
-        "intent": "otp_not_received",
-        "language": "roman_urdu",
-        "severity": "friction",
-        "confidence": 0.9,
-        "rationale": "User reports the OTP never arrived after multiple attempts.",
-    }
-)
+VALID_LABEL = {
+    "intent": "otp_not_received",
+    "intent_secondary": None,
+    "refund_requested": False,
+    "language": "roman_urdu",
+    "severity": "friction",
+    "confidence": 0.9,
+    "rationale": "User reports the OTP never arrived after multiple attempts.",
+}
+VALID_LABEL_JSON = json.dumps(VALID_LABEL)
 
 
 def _taxonomy() -> Taxonomy:
@@ -95,14 +100,12 @@ def test_build_system_prompt_includes_all_intents_and_label_sets() -> None:
 
 
 def test_parse_label_response_returns_typed_fields() -> None:
-    label = parse_label_response(VALID_LABEL_JSON)
-    assert label == {
-        "intent": "otp_not_received",
-        "language": "roman_urdu",
-        "severity": "friction",
-        "confidence": 0.9,
-        "rationale": "User reports the OTP never arrived after multiple attempts.",
-    }
+    assert parse_label_response(VALID_LABEL_JSON) == VALID_LABEL
+
+
+def test_parse_label_response_keeps_a_secondary_intent() -> None:
+    payload = json.dumps({**VALID_LABEL, "intent_secondary": "login_failure"})
+    assert parse_label_response(payload)["intent_secondary"] == "login_failure"
 
 
 def test_parse_label_response_missing_field_raises() -> None:
@@ -163,6 +166,8 @@ def test_cached_label_roundtrip(tmp_path) -> None:
     key = content_hash("some scrubbed text")
     payload = {
         "intent": "otp_not_received",
+        "intent_secondary": None,
+        "refund_requested": False,
         "language": "roman_urdu",
         "severity": "friction",
         "confidence": 0.8,
@@ -175,12 +180,14 @@ def test_cached_label_roundtrip(tmp_path) -> None:
 
 def test_label_records_uses_cache_and_skips_live_call(tmp_path) -> None:
     text = "Call 03001234567 about my OTP"
-    key = content_hash(text)
+    key = cache_key(text, model="claude-haiku-4-5", taxonomy_version=_taxonomy().version)
     write_cached_label(
         tmp_path,
         key,
         {
             "intent": "otp_not_received",
+            "intent_secondary": None,
+            "refund_requested": False,
             "language": "roman_urdu",
             "severity": "friction",
             "confidence": 0.85,
@@ -221,7 +228,11 @@ def test_label_records_calls_live_writes_cache_and_updates_spend(tmp_path) -> No
 
     assert spend == {"input_tokens": 120, "output_tokens": 40, "cache_hits": 0, "live_calls": 1}
     assert labeled[0]["label_intent"] == "otp_not_received"
-    key = content_hash("No PII here, app is slow")
+    key = cache_key(
+        "No PII here, app is slow",
+        model="claude-haiku-4-5",
+        taxonomy_version=_taxonomy().version,
+    )
     assert load_cached_label(tmp_path, key) is not None
 
 
@@ -247,3 +258,90 @@ def test_label_records_respects_limit(tmp_path) -> None:
 def test_estimate_spend_usd_computes_expected_cost() -> None:
     spend = {"input_tokens": 1_000_000, "output_tokens": 500_000, "cache_hits": 0, "live_calls": 1}
     assert estimate_spend_usd(spend) == pytest.approx(1.0 + 2.5)
+
+
+def test_cache_key_separates_models_prompts_and_taxonomy_versions() -> None:
+    base = dict(model="claude-haiku-4-5", taxonomy_version=2)
+    key = cache_key("same text", **base)
+
+    assert key == cache_key("same text", **base)
+    assert key != cache_key("other text", **base)
+    assert key != cache_key("same text", model="claude-sonnet-5", taxonomy_version=2)
+    assert key != cache_key("same text", model="claude-haiku-4-5", taxonomy_version=3)
+
+
+def test_build_system_prompt_includes_boundary_examples_not_just_definitions() -> None:
+    taxonomy = _taxonomy()
+    prompt = build_system_prompt(taxonomy)
+
+    for intent in taxonomy.intents:
+        assert intent.definition.strip() in prompt
+        assert intent.negative_example in prompt
+        assert intent.negative_rationale.strip() in prompt
+        for example in intent.positive_examples:
+            assert example in prompt
+
+
+def test_response_schema_constrains_intent_to_the_taxonomy_vocabulary() -> None:
+    taxonomy = _taxonomy()
+    schema = build_response_schema(taxonomy)["schema"]
+    properties = schema["properties"]
+    intent_ids = [intent.id for intent in taxonomy.intents]
+
+    assert properties["intent"]["enum"] == [*intent_ids, "unclassifiable"]
+    assert properties["language"]["enum"] == list(taxonomy.languages)
+    assert properties["severity"]["enum"] == list(taxonomy.severities)
+    assert schema["additionalProperties"] is False
+    assert set(schema["required"]) == set(REQUIRED_LABEL_FIELDS)
+
+
+def test_response_schema_allows_a_null_secondary_but_not_a_free_string() -> None:
+    options = build_response_schema(_taxonomy())["schema"]["properties"]["intent_secondary"]
+    variants = options["anyOf"]
+
+    assert {"type": "null"} in variants
+    assert all("enum" in v for v in variants if v.get("type") == "string")
+    assert "unclassifiable" not in next(v for v in variants if v.get("type") == "string")["enum"]
+
+
+def test_bad_request_is_not_retried() -> None:
+    calls = []
+
+    def create_fn(**_kwargs: object) -> object:
+        calls.append(1)
+        raise BadRequestError(
+            "bad schema",
+            response=httpx.Response(400, request=httpx.Request("POST", "https://x")),
+            body=None,
+        )
+
+    with pytest.raises(BadRequestError):
+        call_model(
+            create_fn,
+            model="claude-haiku-4-5",
+            system_prompt="prompt",
+            review_text="text",
+            sleep_fn=lambda _seconds: None,
+        )
+    assert len(calls) == 1, "a 400 must fail on the first attempt, not after MAX_ATTEMPTS"
+
+
+def test_is_retryable_separates_transient_faults_from_client_errors() -> None:
+    def status_error(code: int) -> APIStatusError:
+        return APIStatusError(
+            "err",
+            response=httpx.Response(code, request=httpx.Request("POST", "https://x")),
+            body=None,
+        )
+
+    assert is_retryable(status_error(429))
+    assert is_retryable(status_error(500))
+    assert is_retryable(status_error(503))
+    assert not is_retryable(status_error(400))
+    assert not is_retryable(status_error(404))
+
+
+def test_confidence_outside_the_unit_interval_is_rejected() -> None:
+    payload = json.dumps({**VALID_LABEL, "confidence": 1.4})
+    with pytest.raises(ValueError, match="outside"):
+        parse_label_response(payload)

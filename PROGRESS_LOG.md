@@ -28,9 +28,9 @@ onward.
 | 0 — Repo & environment setup | **Done** | Scaffold committed and pushed |
 | 1 — Data collection | **Done** | 17 products collected; ~107.8k unique reviews; validator printed; human reviewed localhost previews |
 | 2 — Cleaning, language & PII | **Done** | 54,519 cleaned; hardened typed PII matching supports three numeral systems; 9,000-item derived scrubbed file and human audit completed without overwriting source layers |
-| 2.5 — Script-gap pilot | **Run complete — headline decision open** | Runner built and executed against 4 models. The script-gap hypothesis was **not supported**; a cross-language *consistency* effect and a systemic taxonomy defect were found instead. Taxonomy raised to v2; confirmation re-run in progress |
-| 3 — Sampling & auto-labelling | **In progress** | The separate 9,000-item sample, 24-intent taxonomy, and initial cached/retryable auto-label pipeline are built; no paid call has occurred; pipeline must adopt the extended schema, strict value validation, and versioned cache keys after Phases 2 and 2.5 pass |
-| 4 — Human verification | Not started | Blocked on Phase 3 |
+| 2.5 — Script-gap pilot | **Done** | 4 models, 320 classifications, $0.75. Script-gap hypothesis **not supported**; a taxonomy defect caused 61% of v1 errors; taxonomy raised to v2. The apparent consistency effect largely dissolved under v2, which is itself the finding: underspecified labels manufacture apparent script effects |
+| 3 — Sampling & auto-labelling | **Diagnostic done; full run pending** | 500-item stratified diagnostic labelled by Sonnet 5 and Opus 5 ($4.39); starved-intent hunt and top-up over all 54,519 reviews ($2.80). Taxonomy validated on real data for the first time. Pipeline now carries structured outputs, enum-bound intents, prompt caching, and full request cache identity. The 9,000-item run is unblocked but deliberately deferred until human gold labels confirm the labelling |
+| 4 — Human verification | **In progress** | Blind adjudication tool built and running locally; 200-item worklist (100 model disagreements + 100 controls). Maintainer adjudicating. This is the only remaining step that cannot be automated |
 | 5 — Benchmark task building | Not started | Blocked on Phase 4 |
 | 6 — Scoring harness | Not started | Blocked on Phase 5 |
 | 7 — Publication | Not started | Blocked on Phase 6 |
@@ -727,6 +727,96 @@ with `certifi==2026.7.22` for verified TLS. All raw data stays local and is git-
 - Verification: `ruff check .` clean, 147 tests passing. Confirmation re-run against taxonomy v2
   was still executing at the time of writing.
 
+### Phase 3 progress — real-data diagnostic (2026-08-26/27)
+
+Before this session no real review had ever been labelled. Eleven days of work, 147 tests, two
+pilot runs and 320 classifications had all been against 20 hand-authored complaints. The
+diagnostic closed that gap.
+
+**Job 24 — pipeline repairs found before spending anything.** Three defects in
+`src/label/auto_label.py` would each have corrupted a 9,000-item run:
+
+- The prompt rendered `f"- {intent.id}: {intent.definition}"` and nothing else — 2,707 of the
+  taxonomy's 10,797 characters. Every positive example, negative example and boundary rationale,
+  the exact content whose sharpening fixed 61% of the v1 pilot errors, was omitted. Rendered
+  prompt went from 3,797 to 15,080 characters once fixed.
+- The disk cache was keyed on `sha256(text)` alone, so a two-model run would have served the
+  first model's replies to the second. Now keyed on model, prompt version, taxonomy version and
+  text, matching `src/pilot/run_pilot.py`.
+- No prompt caching. The ~3.9k-token taxonomy prefix is identical on every call and was being
+  billed in full each time. Adding `cache_control` saved roughly $15.80 on the diagnostic alone.
+
+**Job 25 — the 500-item diagnostic.** `spike/phase3_diag/sample_500.py` drew 125 reviews per
+language form, stratified within each on the regex severity proxy. Equal language strata rather
+than corpus-proportional: the corpus is 88% English and a proportional draw yields ~6
+code-switched items, which cannot show a language-specific failure. Labelled independently by
+Claude Sonnet 5 and Claude Opus 5 — two models that tied at 95% in the Phase 2.5 pilot, so a
+disagreement indicates an ambiguous item rather than a weaker model. 1,000 calls, 0 failed, 10
+unparseable, $4.39.
+
+Results on real complaints (rating 1–2, n=275):
+
+| Measure | Value |
+|---|---|
+| Unclassifiable (reference labeller) | 13.1% |
+| Unclassifiable (both models) | 6.9% |
+| Multi-intent (genuine second intent) | 11.8% |
+| Inter-model agreement | 74.9% |
+| Cohen's kappa (all 490) | 0.758 |
+
+A first reading put unclassifiable at 26.7–33.7%, which was an artifact: the 9,000-item sample
+is rating-stratified and the taxonomy describes complaints, so praise has no matching intent.
+Unclassifiable runs 63.5% at 5 stars and 13.1% at 1 star. The complaint-only figure is the real
+one.
+
+Agreement was flat across language forms — Urdu script 78.0%, Roman Urdu 75.0%, code-switched
+85.4% (highest), English 79.8%; kappa 0.72–0.82 — replicating the Phase 2.5 negative result on
+real data at n≈123 per cell instead of n=20.
+
+**Job 26 — the regex severity proxy was measured, not assumed.** Against labelled
+`financial_loss` it reached 70.2% precision and 71.3% recall, and its misses were not evenly
+distributed: 17 in Urdu script and 11 code-switched against 1 in English. A Latin-token pattern
+is close to blind on Urdu-script complaints. Every keyword-derived statistic produced earlier in
+the project understates non-English harm.
+
+**Job 27 — starved-intent hunt over all 54,519 reviews.** Three intents had zero support in the
+diagnostic and nine more sat under ten. `spike/phase3_diag/hunt_starved.py` searched the full
+corpus with multilingual patterns, scrubbed the candidates through the Phase 2 PII gate, and
+labelled the 50 best matches per intent. `otp_not_received` returned 45/50 — abundant, and
+missed by the sample rather than absent. `fake_payment_screenshot` returned 0/50. A follow-up
+top-up (`topup_starved.py`) brought five viable intents to the ≥30 threshold:
+`refund_request` 91, `scam_impersonation_report` 69, `account_compromised` 53,
+`loan_repayment_dispute` 47, `bill_payment_not_reflected` 34.
+
+**Job 28 — the authored-versus-real comparison, run under identical conditions.** The Phase 2.5
+pilot used taxonomy v1 and the definitions-only prompt; the diagnostic used v2, the full prompt
+and structured outputs, so comparing them directly invited an obvious objection.
+`spike/phase3_diag/authored_vs_real.py` re-labelled all 80 authored variants under the
+diagnostic's exact conditions:
+
+| Set | Inter-model agreement |
+|---|---|
+| Authored complaints (n=80) | **100.0%** |
+| Real complaints (n=275) | **74.9%** |
+| Gap | **+25.1 points** |
+
+Same two models, same taxonomy, same prompt, same metric; the only variable is authored versus
+real. Both models scored 76/80 against the authored gold labels while agreeing with each other
+on 80/80 — they make the same four errors, which points at gold-label disputes rather than model
+noise.
+
+**Job 29 — forward collection.** `src/collect/refresh_reviews.py`, six tests. First run
+collected 5,782 new reviews across 17 apps in 61 seconds; verified all August 2026,
+schema-valid, unique, no reviewer identity, 99.95% genuinely new.
+
+**Job 30 — blind adjudication tool.** `spike/phase3_diag/adjudicate.py`, a local
+`http.server` on 127.0.0.1 serving 100 disagreements plus 100 controls in shuffled order.
+Model predictions are withheld from the item payload entirely and returned only after a
+judgement is saved. Verified over the wire: `/next` returns only `review_id`, `text`,
+`product_id`, `rating`, `language_detected`.
+
+- Verification: `ruff check .` clean, 161 tests passing (was 147). Session spend ~$7.50 of $150.
+
 ---
 
 ## 4. Key decisions and their reasoning
@@ -831,6 +921,90 @@ with `certifi==2026.7.22` for verified TLS. All raw data stays local and is git-
   stored as `label_language`, distinct from Phase 2's deterministic `language` field —
   the two can disagree, and comparing them is useful signal, so neither is allowed to
   silently overwrite the other.
+
+21. **A 500-item diagnostic runs before the 9,000-item batch (2026-08-26).** The taxonomy, the
+  most carefully built artifact in the project, had never been applied to a real review. Paying
+  to label 9,000 items against an unvalidated schema risks discovering a structural defect after
+  the spend rather than before it. The diagnostic cost $4.39 and found the pipeline defects in
+  Issues 15–17 before any of them could scale.
+
+22. **Two strong models, not a capability ladder (2026-08-26).** Sonnet 5 and Opus 5 tied at 95%
+  in the Phase 2.5 pilot, so where they disagree on a real review the *item* is ambiguous rather
+  than one model weaker. Haiku 4.5 was dropped for two reasons: at 86% its errors would have
+  mixed model skill into the ambiguity signal, and its minimum cacheable prefix sits above this
+  prompt's ~3.9k tokens, so it would have run uncached (Issue 17).
+
+23. **Structured outputs with an enum-bound intent field (2026-08-27).** The response schema is
+  generated from the taxonomy itself, so an invalid intent id is structurally impossible rather
+  than merely unlikely, and the 1% of free-text replies that failed JSON parsing in the
+  diagnostic cannot recur. `minimum`/`maximum` are unsupported on a `number` field, so the
+  confidence bound is enforced in `parse_label_response` instead (Issue 19).
+
+24. **The extended label schema is adopted, on evidence rather than plan (2026-08-27).** V2 left
+  single-label versus multi-label open pending real multi-intent rates. The diagnostic measured
+  11.8%, so a single-label release would discard a distinct second matter on roughly one review
+  in eight. `intent_secondary` and `refund_requested` — both already named by the taxonomy v2
+  precedence rule — are now required fields. This closes V2 open question 4.
+
+25. **The labelling prompt carries examples, not just definitions (2026-08-26).** The boundary
+  between two intents lives in the negative example and its rationale, not in the definition
+  sentence. Sending definitions alone withheld 75% of the taxonomy's content from the model
+  while the project reported results as though the taxonomy had been applied (Issue 15).
+
+26. **Cache identity covers the whole request, not just the text (2026-08-26).** Keying on text
+  alone let one model's reply serve another's and let a stale reply survive a prompt or taxonomy
+  change. The pilot runner already had this right; the labeller did not (Issue 16).
+
+27. **A 400 is never retried (2026-08-27).** `BadRequestError` subclasses `APIStatusError`, so a
+  malformed request was being resent MAX_ATTEMPTS times. On a 9,000-item run with a schema
+  mistake that is 45,000 wasted calls, and the retry loop hides the cause behind a generic
+  failure message (Issue 18).
+
+28. **`fake_payment_screenshot` is retained and marked out-of-channel, not merged or dropped
+  (2026-08-27).** Two independent searches over all 54,519 reviews — keyword, then a scenario
+  search requiring counterparty, payment-proof, forgery and non-receipt signals together —
+  returned zero examples. The reason is channel, not taxonomy: in that scam the app behaved
+  correctly and a counterparty deceived a merchant, so there is nothing to complain to the app
+  about. Contrast `scam_impersonation_report`, well represented because the fraudster poses as
+  the company. Merging would conflate counterparty fraud with company impersonation; dropping
+  would lose a category any operator-side complaint system meets routinely. The generalisation —
+  app-store reviews capture fraud only when the platform is blamed — is recorded in
+  `LIMITATIONS.md` as a property of the collection channel, not of this corpus.
+
+29. **No v3 precedence rule for `unauthorized_vas_deduction` (2026-08-27).** The hunt's confusion
+  matrix appeared to show the intent swallowing fraud complaints, and it was initially recorded
+  as a boundary defect of the same shape as the v1 `refund_request` collision. Reading the
+  underlying reviews reversed that: all 23 items were genuinely unauthorized VAS charges, each
+  naming a service. Pakistani reviewers write "scam", "fraud" and "unauthorized" to mean a
+  provider charge they never consented to, so keyword retrieval on those words returns VAS
+  complaints. The same hunt found 20 genuine `account_compromised` cases and labelled them
+  correctly — the boundary discriminates. **A confusion matrix computed over keyword-retrieved
+  candidates measures the retrieval, not the taxonomy** (Issue 20).
+
+30. **Forward collection is a separate module, not a flag on the Phase 1 scraper (2026-08-26).**
+  `scrape_reviews.py` walks backwards into history and returns early once a checkpoint is marked
+  complete, so re-running it can never pick up new reviews. `refresh_reviews.py` solves the
+  opposite problem and never reads or writes Phase 1 checkpoints, so a refresh cannot corrupt the
+  original collection. It stops after 100 *consecutive* known ids rather than the first one,
+  because the store reorders near-simultaneous posts and a lone familiar review can sit above
+  genuinely new ones.
+
+31. **Adjudication is blind, with controls (2026-08-27).** Showing an annotator two model answers
+  and asking which is better produces a preference survey, not an independent judgement, and a
+  reviewer would say so. Model predictions are withheld from the item payload entirely — not
+  merely hidden in the page — and returned only after a judgement is saved. 100 agreement
+  controls are shuffled in and indistinguishable, so the record can show the annotator was not
+  siding with a preferred model. The worklist order is seeded and shuffled, which means a partial
+  pass is still an unbiased sample.
+
+32. **The public headline is the authored-versus-real gap, not the script-gap result
+  (2026-08-27).** V2 left the Phase 2.5 headline open between consistency, T4 policy
+  over-authorization, and harder complaints. The diagnostic supplies a stronger option than any
+  of the three: identical models, taxonomy, prompt and metric produce 100% agreement on authored
+  complaints and 74.9% on real ones. The script-gap finding remains, reframed as a methods
+  caution — 490 items support a strong failure to detect a gap, not proof of absence — and the
+  Phase 2.5 v1→v2 contrast supplies the companion claim that underspecified labels manufacture
+  apparent script effects.
 
 ---
 
@@ -975,76 +1149,151 @@ with `certifi==2026.7.22` for verified TLS. All raw data stays local and is git-
   taxonomy, and requirements. The repository remains not fully `ruff format`-clean, which is
   pre-existing and unchanged - `ruff check .` is the standard this project verifies against.
 
+### Issue 15 — Labelling prompt sent a quarter of the taxonomy (Phase 3)
+- **What happened:** `build_system_prompt` rendered `f"- {intent.id}: {intent.definition}"` and
+  nothing more — 2,707 of the taxonomy's 10,797 characters. All positive examples, negative
+  examples and boundary rationales were omitted, which is exactly the content whose sharpening
+  resolved 61% of the Phase 2.5 v1 errors.
+- **Why it mattered:** the project was reporting model behaviour "against the taxonomy" while
+  withholding the part of the taxonomy that encodes every boundary.
+- **Fix:** full rendering per intent; prompt grew 3,797 → 15,080 characters. Test added asserting
+  every definition, both positive examples, the negative example and the rationale appear.
+
+### Issue 16 — Cache key omitted model and prompt identity (Phase 3)
+- **What happened:** `auto_label.py` keyed cached replies on `sha256(text)` alone.
+- **Why it mattered:** a two-model run would silently serve the first model's replies to the
+  second, and the comparison would look clean while being fabricated. A prompt or taxonomy change
+  would also leave stale replies in place. `src/pilot/run_pilot.py` already had this right; the
+  labeller had not been brought into line.
+- **Fix:** `cache_key(text, model=..., taxonomy_version=...)` composing model, prompt version,
+  taxonomy version and text. Test asserts all four dimensions separate keys.
+
+### Issue 17 — Haiku 4.5 silently ran uncached (Phase 3)
+- **What happened:** with `cache_control` set, Sonnet 5 reported a 5,113-token cache write then
+  reads; Haiku 4.5 reported `cache_creation_input_tokens: 0` and `cache_read_input_tokens: 0` on
+  every call, paying full price for the ~3.8k-token prefix each time.
+- **Cause:** Haiku's minimum cacheable prefix sits above this prompt's length. No error is
+  raised — caching simply does not happen.
+- **Fix:** roster changed to Sonnet 5 + Opus 5, which also improved the diagnostic (Decision 22).
+  Recorded because the failure is silent: only `usage.cache_read_input_tokens` reveals it.
+
+### Issue 18 — Malformed requests were retried five times (Phase 3)
+- **What happened:** a schema rejection (`400 invalid_request_error`) was resent MAX_ATTEMPTS
+  times with backoff before surfacing as a generic "failed after 5 attempts".
+- **Cause:** `BadRequestError` subclasses `APIStatusError`, which was in `RETRYABLE_ERRORS`.
+- **Why it mattered:** a 400 fails identically every time. On the 9,000-item run one schema
+  mistake would have become 45,000 calls, and the real error text stays buried.
+- **Fix:** `is_retryable()` — rate limits and 5xx only. Test asserts a 400 fails on the first
+  attempt.
+
+### Issue 19 — Structured-output schema rejects numeric bounds (Phase 3)
+- **What happened:** `{"type": "number", "minimum": 0, "maximum": 1}` returned
+  `output_config.format.schema: For 'number' type, properties maximum, minimum are not supported`.
+- **Fix:** bound removed from the schema and enforced in `parse_label_response` via
+  `_bounded_confidence`. Surfaced only because of Issue 18 — the retry loop had been masking it.
+
+### Issue 20 — A confusion matrix was misread as a taxonomy defect (Phase 3)
+- **What happened:** the starved-intent hunt showed 23 candidates for
+  `scam_impersonation_report` and `account_compromised` landing in
+  `unauthorized_vas_deduction`. This was recorded, and reported to the maintainer, as a boundary
+  defect of the same shape as the v1 `refund_request` collision, with a v3 precedence rule
+  proposed.
+- **What was actually true:** reading the reviews showed all 23 were genuine unauthorized VAS
+  charges, each naming a service (Tamasha, EFU Life, CapCut, FikrFree). The hunt patterns searched
+  for "scam", "fraud" and "unauthorized", which in this corpus are the ordinary words for a
+  provider charge the user never consented to. The retrieval was wrong; the model was right.
+- **Lesson:** a confusion matrix built over keyword-retrieved candidates measures the retrieval,
+  not the taxonomy. The v1 collision was real because it was measured against gold labels; this
+  was not. Inspect the text before calling a boundary broken. Recorded in `config/taxonomy.yaml`
+  beside the intent so the mistake is not re-derived.
+
+### Issue 21 — Top-up script discarded its own previous results (Phase 3)
+- **What happened:** `topup_starved.py` opened its output with `"w"`, so a second run to close a
+  five-example shortfall overwrote the 225 rows from the first run; the combined total fell from
+  25 to 18.
+- **Fix:** output now merges by `review_id` before writing. Candidate slicing also changed from a
+  fixed `[50:50+n]` window to "everything below the offset, minus what has been labelled", so
+  repeat runs advance down the ranking instead of redrawing the same candidates. A draw floor was
+  added because retrieval yield decays down the ranking, so the rate observed in the first slice
+  over-predicts. No spend cost — every reply was already cached.
+
 ---
 
 ## 6. Work pending / next steps
 
-**Immediate next action: finish the taxonomy-v2 confirmation re-run, then have the maintainer
-choose the public headline. Do not run paid auto-labelling until that choice is made.**
+**Immediate next action: the maintainer adjudicates the 200-item blind worklist. Nothing else on
+the critical path can proceed without it, and nothing else requires a human.**
 
-Required order under `PROJECT_CONTEXT_V2.md`:
+Run it with `python -m spike.phase3_diag.adjudicate`, then open http://127.0.0.1:8790.
+Progress saves after every judgement; a partial pass is still an unbiased sample because the
+worklist is seeded and shuffled.
 
-1. ~~Maintainer completes and returns the private Word workbook~~ **Done (Job 20).**
-2. ~~Transfer into `spike/phase2_5/complaints.json` and validate all 80 variants~~ **Done
-  (Job 20)** — validator green, spans corrected, three semantic defects fixed with approval.
-3. ~~Decide the model roster; build and run the cached fixed-prompt comparison~~ **Done
-  (Jobs 21–22)** — 4 models, 320 classifications, $0.75, gap report and spend report on disk.
-4. **Open — the Phase 2.5 decision is now a headline choice, not a go/no-go.** The script-gap
-  hypothesis failed; V2's gate says report rather than abandon. The maintainer picks between:
-  (a) cross-language **consistency** — supported by the data already collected;
-  (b) **T4 policy over-authorization** — V2's named backup, untested, needs new authoring;
-  (c) **harder complaints** and a retest of the original gap hypothesis.
-  Recommendation on the evidence: (a). It needs no new task family, and the four-form paired
-  design that produces it is the project's distinguishing property.
-5. Confirm the v2 re-run clears the 14 refund-boundary errors and leaves consistency at 14/18/20.
-6. Re-run Gemini once its free-tier quota resets for a genuine second-vendor reading.
+### Why this step and not the 9,000-item run
 
-**Consequence of choosing (a), to weigh before committing:** T2 stops being one task among five and
-becomes the centrepiece, so its size drives the result's credibility. Twenty four-form sets give a
-margin of error near ±20 points; roughly 100 sets bring that to about ±9. At ~6 minutes per set
-when the Roman Urdu arm is mined from the existing corpus rather than written, 100 sets is roughly
-10 hours of maintainer authoring. Phase 4's 1,000 verifications remain the other large human cost.
-5. Only after that decision, revise Job 16 to the extended schema, strict validation, and
-  versioned cache identity; test 10–25 paid items and project cost before the 9,000 run.
-6. After the real run, build `label_stats.py`, inspect rare intents/T2/entity candidate
-  coverage, and top up only where evidence requires it.
+Everything measured on real data so far is inter-model *agreement*, not accuracy, because real
+reviews have no gold labels. For the headline claim that is sufficient — agreement is the metric
+on both sides of the authored-versus-real comparison. It is not sufficient for the question a
+reader asks immediately afterwards:
 
-**Phase 1 acceptance criteria (from `PROJECT_CONTEXT.md`) — met:**
-- ≥40,000 reviews across ≥4 apps spanning ≥24 months: ~107,780 unique across 17
-  products, 2015–2026.
-- Validation report printed (`python -m src.collect.validate_raw`).
-- No PII fields in the stored schema.
+> Is the 25-point drop because real complaints are genuinely harder, or because the taxonomy is
+> ambiguous on messy text?
 
-**Phase 3 progress against the V2 acceptance criteria:**
-- Stratified sample of 8,000–10,000 reviews balanced across product, language, and
-  rating: **done** (9,000 sampled, seeded, reproducible, report on disk).
-- `config/taxonomy.yaml` with human-written definitions and 2 positive + 1 negative
-  example per intent: **done** (all 24 intents, human-approved batch by batch).
-- Hardened PII gate: **done (Job 18)** with derived output, tests, challenge matrix, real-data
-  risk audit, and explicit documentation of absent real Urdu-script positive examples.
-- Phase 2.5 pilot: **run complete (Jobs 21–23)** — 20 human-authored complaints, 80 validated
-  variants, 4 models, 320 classifications, $0.75. Script-gap hypothesis not supported; consistency
-  effect and a taxonomy defect found instead; taxonomy raised to v2. **Headline choice open.**
-- Phase 3 prompt improvement identified: the labelling prompt currently sends only intent
-  definitions and omits the human-authored positive/negative examples that encode each boundary.
-  Test that head-to-head before spending on the 9,000-item run.
-- Auto-labelling foundation with caching, retries, resume, and spend logging: **built and
-  tested (Job 16)**; V2 extended schema/cache/validation revision: **not started**; no
-  real labelling run has happened.
-- Every intent with ≥30 examples, spend under budget, cache hit-rate verified on re-run:
-  **not started** (depends on the real run above).
+The answer lives in the 100 disagreements. Adjudicating them splits the gap three ways — one
+model right and one wrong (real difficulty), both defensible (taxonomy ambiguity on real text),
+neither right (coverage gap). That decomposition is the contribution; without it the project has
+an observation rather than a finding. Labelling 9,000 items before the labelling itself is
+validated would be paying to scale something unverified.
 
-**Open questions for later phases:**
-1. ~~Taxonomy granularity~~ **Resolved:** retain all 24 fine intents; broader reporting
-  groups may be derived later but never replace fine labels.
-2. ~~External annotators for v1~~ **Resolved:** unavailable; use 1,000 solo verifications
-  plus a blind delayed 200-item self-check and disclose the limitation.
-3. Exact Phase 2.5 model roster and exact final script-gap formula.
-4. T1 single-label versus multi-label, decided only after Phase 3 multi-intent rates.
-5. Publish both dev/test splits or retain a hidden holdout.
-6. Final Phase 6 model roster and evidence-led public headline.
+### Ordered plan
 
----
+1. **Adjudicate 200 items** — maintainer, ~2 hours. In progress.
+2. **Compute the decomposition** — automated, minutes. Splits the 25.1-point gap and yields the
+  first human-verified accuracy figures in the project.
+3. ~~Top up the starved intents~~ **Done (Job 27).** Five intents brought to ≥30.
+4. **Label the full 9,000** — ~$21 on Sonnet 5 with caching, one afternoon. For the dataset
+  release rather than the paper. Deferred until step 2 confirms the labelling is sound.
+5. **Draft the paper.** Four findings, ordered by strength: the authored-versus-real gap (100% vs
+  74.9%, identical conditions); no script gap on real complaints (kappa 0.72–0.82, n≈123 per
+  form); keyword severity detection failing 17:1 against Urdu script; app-store reviews capturing
+  fraud only when the platform is blamed. The Phase 2.5 v1→v2 contrast supplies a fifth —
+  underspecified labels manufacture apparent script effects.
+6. **arXiv preprint** for the priority claim, then a venue. WNUT (Workshop on Noisy
+  User-generated Text) is the closest fit: the central finding is that clean authored text
+  overstates model performance against noisy real text. LREC is the alternative if the release
+  leads with the dataset.
+7. **Dataset release.** Publish review ids and derived labels with a rehydration script, not
+  review text — Google's terms prohibit redistributing review content, and the derived-label form
+  costs nothing scientifically.
+
+### Standing, not blocking
+
+- **Monthly forward collection.** `python -m src.collect.refresh_reviews`. The cron line is in
+  the module docstring and is deliberately **not installed** — a recurring job that reaches an
+  external service belongs to the maintainer to enable. First run collected 5,782 reviews in 61
+  seconds. App stores serve only a recent window, so this is the one asset that cannot be
+  back-filled by a later entrant; a year of monthly runs is roughly 200,000 reviews of genuine
+  time series.
+
+### Open decisions
+
+1. Whether to install the collection cron.
+2. Whether the dataset release ships the 500-item diagnostic subset, the 9,000-item run, or both.
+3. Case 05's gold label (carried from Phase 2.5): under the v2 rule its correct answer is
+  `transfer_failed_money_deducted`, but it was authored to test `refund_request`. Either relabel
+  it, leaving no bare-refund case, or rewrite its text. Does not block the diagnostic work, which
+  uses no gold labels.
+
+### Closed since the last entry
+
+- ~~Phase 2.5 headline choice~~ **Closed by Decision 32** — superseded by the authored-versus-real
+  gap, which is stronger than all three options V2 offered.
+- ~~T1 single-label versus multi-label (V2 open question 4)~~ **Closed by Decision 24** — 11.8%
+  multi-intent measured; `intent_secondary` shipped in the schema.
+- ~~Prompt improvement: test definitions-only against definitions-plus-examples~~ **Closed by
+  Issue 15** — not a test, a defect; examples were never optional.
+- ~~Gemini free-tier re-run~~ **Dropped.** The roster is now two Claude models chosen for tied
+  capability (Decision 22); a rate-limited third vendor at 20 requests/day adds nothing to an
+  agreement measurement.
 
 ## 7. Environment / how to resume locally
 
@@ -1058,7 +1307,7 @@ python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 pip install -e .
 pre-commit install
-ruff check . && pytest   # should pass — currently 112 tests
+ruff check . && pytest   # should pass — currently 161 tests
 cp .env.example .env     # fill in real keys only when Phase 3/6 needs them
 ```
 
@@ -1076,6 +1325,18 @@ python -m http.server 8766 --bind 127.0.0.1 --directory data/raw/source_registry
 
 # Availability census (33 listings, Google totals + Apple accessible counts)
 python -m http.server 8767 --bind 127.0.0.1 --directory data/raw/availability_census_preview
+```
+
+**Phase 4 adjudication (serves its own page; needs no separate http.server):**
+```bash
+python -m spike.phase3_diag.adjudicate   # then open http://127.0.0.1:8790
+```
+Judgements append to `spike/phase3_diag/adjudications.jsonl`. Re-running resumes rather than
+restarts. Local-only and git-ignored, like the rest of `spike/`.
+
+**Monthly forward collection (see Decision 30):**
+```bash
+python -m src.collect.refresh_reviews   # new reviews only; ~60s for all 17 apps
 ```
 
 **To regenerate preview HTML from updated config or collected data:**
