@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
+from src.adjudicate.demo import build as build_demo
 from src.adjudicate.items import load_items, load_judgements
 from src.adjudicate.labels import load_labels
 from src.adjudicate.power import minimum_detectable_effect, permutation_test, required_n
@@ -23,7 +24,6 @@ from src.adjudicate.scoring import (
     wilson,
 )
 from src.adjudicate.server import Session, serve
-from src.adjudicate.worklist import build_worklist
 
 
 def _rate(label: str, hits: int, total: int, width: int = 26) -> str:
@@ -38,28 +38,22 @@ def _rate(label: str, hits: int, total: int, width: int = 26) -> str:
 
 
 def judge(args: argparse.Namespace) -> None:
-    """Serve the adjudication interface."""
-    items = load_items(args.items)
-    labels = load_labels(args.labels)
-    judgements = load_judgements(args.out)
-    worklist = build_worklist(
-        items,
-        judgements,
-        mode=args.mode,
-        limit=args.limit,
-        seed=args.seed,
-        label_version=labels.version,
-    )
-    if not worklist:
-        print(f"Nothing to do in mode '{args.mode}'.")
-        return
+    """Open the application: judging and results, with the pass selectable inside it."""
+    if args.demo:
+        # Real evaluation data is customer text and does not travel, so a demo needs
+        # something invented to open. Everything downstream behaves identically.
+        directory = Path(args.demo)
+        args.items, args.labels, args.out = build_demo(directory)
+        print(f"demo dataset written to {directory}\n")
     serve(
         Session(
-            worklist=worklist,
-            labels=labels,
+            items=load_items(args.items),
+            labels=load_labels(args.labels),
             output=args.out,
             mode=args.mode,
             blind=not args.show_predictions,
+            seed=args.seed,
+            limit=args.limit,
             title=args.items.name,
         ),
         port=args.port,
@@ -142,12 +136,25 @@ def main() -> None:
     parser = argparse.ArgumentParser(prog="python -m src.adjudicate", description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
 
-    j = sub.add_parser("judge", help="collect human labels in a browser")
-    j.add_argument("--items", type=Path, required=True, help="JSONL of items")
-    j.add_argument("--labels", type=Path, required=True, help="YAML label set")
-    j.add_argument("--out", type=Path, required=True, help="JSONL to write judgements to")
+    j = sub.add_parser(
+        "judge", help="open the app: judge items and view results"
+    )
+    j.add_argument("--items", type=Path, help="JSONL of items")
+    j.add_argument("--labels", type=Path, help="YAML label set")
+    j.add_argument("--out", type=Path, help="JSONL to write judgements to")
     j.add_argument(
-        "--mode", choices=("all", "controls", "recheck", "revisit"), default="all"
+        "--demo",
+        nargs="?",
+        const="demo_data",
+        default=None,
+        metavar="DIR",
+        help="generate a synthetic dataset and open it; needs no data of your own",
+    )
+    j.add_argument(
+        "--mode",
+        choices=("all", "controls", "recheck", "revisit"),
+        default="all",
+        help="pass to open on; switchable in the interface",
     )
     j.add_argument("--limit", type=int, default=None)
     j.add_argument("--seed", type=int, default=0)
@@ -169,6 +176,12 @@ def main() -> None:
     s.set_defaults(func=score)
 
     args = parser.parse_args()
+    if getattr(args, "demo", None) is None and args.command == "judge":
+        missing = [n for n in ("items", "labels", "out") if getattr(args, n) is None]
+        if missing:
+            parser.error(
+                f"judge needs --{', --'.join(missing)}, or --demo to generate a dataset"
+            )
     args.func(args)
 
 

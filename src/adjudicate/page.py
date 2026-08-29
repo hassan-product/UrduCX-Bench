@@ -1,8 +1,12 @@
 """The adjudication interface.
 
-Kept as one self-contained document with no external assets, because the whole point of
-serving it from localhost is that the data never leaves the machine. A page that pulls a
-stylesheet from a CDN quietly announces every visit.
+One self-contained document with no external assets, because the point of serving from
+localhost is that the data never leaves the machine - a page that pulls a stylesheet from
+a CDN quietly announces every visit.
+
+Two views: judging, and the results computed from those judgements. Switching pass or
+turning blindness off are controls here rather than command-line flags, so a session can
+move between them without restarting and losing its place.
 """
 
 from __future__ import annotations
@@ -10,106 +14,192 @@ from __future__ import annotations
 PAGE = """<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Adjudication</title><style>
+:root{--bg:#f4f6f8;--card:#fff;--ink:#12171d;--soft:#5a6673;--faint:#8992a0;--line:#e0e5ea;
+  --go:#1b6558;--warn:#9c4436;--goSoft:#e6f0ed;--warnSoft:#f7ebe8}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#0e1218;--card:#171d25;
+  --ink:#e7edf3;--soft:#a7b2be;--faint:#7b8592;--line:#252d37;--go:#5cb5a2;--warn:#d4867a;
+  --goSoft:#152420;--warnSoft:#241713}}
 *{box-sizing:border-box}
 body{font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;margin:0;
-  background:#f5f7f9;color:#12171d}
-.wrap{max-width:1120px;margin:0 auto;padding:22px}
-header{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px}
-h1{font-size:14px;font-weight:600;margin:0;letter-spacing:.03em;text-transform:uppercase}
-.count{font:13px ui-monospace,SFMono-Regular,Menlo,monospace;color:#5a6673}
-.bar{height:3px;background:#e0e5ea;border-radius:2px;overflow:hidden;margin-bottom:20px}
-.bar i{display:block;height:100%;background:#1b6558;transition:width .25s}
-.card{background:#fff;border:1px solid #e0e5ea;border-radius:8px;padding:20px;margin-bottom:14px}
+  background:var(--bg);color:var(--ink)}
+.wrap{max-width:1140px;margin:0 auto;padding:18px 22px 60px}
+nav{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:12px}
+.tab{background:none;border:0;padding:6px 2px;font:600 13px/1 inherit;letter-spacing:.04em;
+  text-transform:uppercase;color:var(--faint);cursor:pointer;border-bottom:2px solid transparent}
+.tab.on{color:var(--ink);border-bottom-color:var(--go)}
+.spacer{flex:1}
+select,.toggle{font:13px inherit;padding:5px 8px;border:1px solid var(--line);
+  border-radius:5px;background:var(--card);color:var(--ink);cursor:pointer}
+.toggle.off{border-color:var(--warn);color:var(--warn);background:var(--warnSoft)}
+.count{font:13px ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--soft)}
+.bar{height:3px;background:var(--line);border-radius:2px;overflow:hidden;margin-bottom:18px}
+.bar i{display:block;height:100%;background:var(--go);transition:width .25s}
+.card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:20px;
+  margin-bottom:14px}
 .text{font-size:19px;line-height:1.7;white-space:pre-wrap;word-break:break-word}
-.meta{margin-top:12px;font:12px ui-monospace,Menlo,monospace;color:#6b7682}
+.meta{margin-top:12px;font:12px ui-monospace,Menlo,monospace;color:var(--faint)}
 .cols{display:grid;grid-template-columns:1fr 1fr;gap:20px}
-@media(max-width:860px){.cols{grid-template-columns:1fr}}
+@media(max-width:880px){.cols{grid-template-columns:1fr}}
 .grp{font:11px ui-monospace,Menlo,monospace;text-transform:uppercase;letter-spacing:.09em;
-  color:#8992a0;margin:14px 0 5px}
+  color:var(--faint);margin:14px 0 5px}
 label.opt{display:block;padding:6px 9px;border-radius:5px;cursor:pointer;font-size:14px}
-label.opt:hover{background:#eef1f4}
-label.opt.sel{background:#1b6558;color:#fff}
+label.opt:hover{background:var(--bg)}
+label.opt.sel{background:var(--go);color:#fff}
 input[type=radio],input[type=checkbox]{margin-right:7px}
-#def{position:sticky;top:22px;background:#fbfcfd;border:1px solid #e0e5ea;border-radius:8px;
-  padding:16px;font-size:13.5px;min-height:200px}
-#def h3{margin:0 0 8px;font:12px ui-monospace,Menlo,monospace;color:#1b6558}
-#def .ex{margin:7px 0 0;padding-left:10px;border-left:2px solid #ccd4dc;color:#3d454e}
-#def .no{border-left-color:#9c4436}
-.extras{margin-top:16px;padding-top:14px;border-top:1px solid #e0e5ea;font-size:14px}
+#def{position:sticky;top:18px;background:var(--bg);border:1px solid var(--line);
+  border-radius:8px;padding:16px;font-size:13.5px;min-height:210px}
+#def h3{margin:0 0 8px;font:12px ui-monospace,Menlo,monospace;color:var(--go)}
+#def .ex{margin:7px 0 0;padding-left:10px;border-left:2px solid var(--line);color:var(--soft)}
+#def .no{border-left-color:var(--warn)}
+.extras{margin-top:16px;padding-top:14px;border-top:1px solid var(--line);font-size:14px}
 .extras label{display:block;margin:7px 0;cursor:pointer}
-select,textarea{width:100%;padding:8px;border:1px solid #d3d9e0;border-radius:5px;
-  font:13px inherit;margin-top:6px}
-button{background:#1b6558;color:#fff;border:0;padding:11px 26px;border-radius:6px;
-  font-size:15px;font-weight:600;cursor:pointer;margin-top:16px}
-button:disabled{background:#b3bbc4;cursor:not-allowed}
-button.ghost{background:transparent;color:#6b7682;font-weight:400;padding:11px 12px}
-button:focus-visible,label.opt:focus-within{outline:2px solid #1b6558;outline-offset:2px}
-#reveal{display:none;background:#fff;border:1px solid #e0e5ea;border-left:3px solid #1b6558;
-  border-radius:6px;padding:14px 16px;margin-bottom:14px;font-size:14px}
-#reveal b{font:12px ui-monospace,Menlo,monospace}
-#shown{background:#fff;border:1px solid #e0e5ea;border-left:3px solid #9c4436;
-  border-radius:6px;padding:14px 16px;margin-bottom:14px;font-size:14px}
+textarea{width:100%;padding:8px;border:1px solid var(--line);border-radius:5px;
+  font:13px inherit;margin-top:6px;background:var(--card);color:var(--ink)}
+button.go{background:var(--go);color:#fff;border:0;padding:11px 26px;border-radius:6px;
+  font:600 15px inherit;cursor:pointer;margin-top:16px}
+button.go:disabled{background:var(--faint);cursor:not-allowed}
+button.ghost{background:none;border:0;color:var(--soft);font:400 15px inherit;
+  padding:11px 12px;cursor:pointer;margin-top:16px}
+button:focus-visible,select:focus-visible,label.opt:focus-within{outline:2px solid var(--go);
+  outline-offset:2px}
+#reveal{display:none;background:var(--card);border:1px solid var(--line);
+  border-left:3px solid var(--go);border-radius:6px;padding:13px 16px;margin-bottom:14px;font-size:14px}
+#shown{background:var(--warnSoft);border:1px solid var(--warn);border-radius:6px;
+  padding:13px 16px;margin-bottom:14px;font-size:14px;color:var(--warn)}
+b.mono{font:600 12px ui-monospace,Menlo,monospace}
 .done{text-align:center;padding:70px 20px}
+/* No min-width: a table that overflows scrolls its first column out of view, leaving
+   numbers with nothing to identify them. Below the breakpoint the estimate bar is
+   dropped instead - it is a second reading of numbers already in the row. */
+table{width:100%;border-collapse:collapse;font-size:14px;margin:8px 0 2px;
+  table-layout:fixed}
+col.c-name{width:34%}col.c-num{width:15%}col.c-rate{width:13%}col.c-ci{width:17%}
+col.c-gauge{width:21%}
+@media(max-width:760px){
+  col.c-gauge,th.gauge-h,td.gauge-c{display:none}
+  col.c-name{width:40%}col.c-num{width:19%}col.c-rate{width:17%}col.c-ci{width:24%}
+  table{font-size:13px}
+}
+th,td{text-align:left;padding:8px 10px 8px 0;border-bottom:1px solid var(--line);
+  vertical-align:middle}
+th{font:400 11px ui-monospace,Menlo,monospace;text-transform:uppercase;letter-spacing:.08em;
+  color:var(--faint);white-space:nowrap}
+td.name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+td.n{font-family:ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums;text-align:right;
+  white-space:nowrap}
+td.rate{font-weight:600}
+/* Estimate with its interval. The band is the finding; the tick is only its midpoint,
+   so the band is drawn solid and the tick kept small. */
+.gauge{position:relative;height:16px;margin-right:4px}
+.gauge::before{content:"";position:absolute;left:0;right:0;top:7px;height:2px;
+  background:var(--line);border-radius:1px}
+.gauge i{position:absolute;top:5px;height:6px;background:var(--go);opacity:.32;border-radius:3px}
+.gauge b{position:absolute;top:2px;width:2px;height:12px;background:var(--go);border-radius:1px}
+.t{border-bottom:1px dotted var(--faint);cursor:help}
+.t:focus-visible{outline:2px solid var(--go);outline-offset:2px}
+.note{font-size:13px;color:var(--soft);margin:8px 0 0}
+.chip{font:13px inherit;padding:5px 11px;margin:0 7px 7px 0;border:1px solid var(--line);
+  border-radius:14px;background:var(--card);color:var(--soft);cursor:pointer}
+.chip:hover{border-color:var(--go);color:var(--ink)}
+.chip.on{background:var(--go);border-color:var(--go);color:#fff}
+.warnnote{color:var(--warn)}
+h2{font-size:15px;font-weight:600;margin:0 0 4px}
+h2 .sub{font:400 13px inherit;color:var(--faint);margin-left:8px}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
 </style></head><body><div class="wrap">
-<header><h1 id="mode">Adjudication</h1><div class="count" id="count"></div></header>
+<nav>
+  <button class="tab on" id="tJudge" onclick="show('judge')">Judge</button>
+  <button class="tab" id="tScore" onclick="show('score')">Results</button>
+  <span class="spacer"></span>
+  <select id="mode" onchange="setPass()" title="which pass to work through"></select>
+  <button class="toggle" id="blind" onclick="toggleBlind()"></button>
+  <span class="count" id="count"></span>
+</nav>
 <div class="bar"><i id="prog"></i></div>
-<div id="reveal"></div><div id="app"></div>
+<div id="judge"><div id="reveal"></div><div id="app"></div></div>
+<div id="score" style="display:none"></div>
 </div><script>
-let CFG=null,item=null,back=0,prev=null;
+let CFG=null,item=null,back=0,view='judge';
 
-async function boot(){CFG=await (await fetch('./config')).json();
-  document.getElementById('mode').textContent=CFG.mode+' — '+CFG.title;next();}
+async function boot(){CFG=await (await fetch('./config')).json();paintState(CFG);next();}
+
+function paintState(s){
+  const m=document.getElementById('mode');
+  if(!m.options.length){CFG.modes.forEach(x=>{const o=document.createElement('option');
+    o.value=x;m.appendChild(o);});}
+  [...m.options].forEach(o=>{o.textContent=o.value+' ('+(s.counts[o.value]??0)+')';});
+  m.value=s.mode;
+  const b=document.getElementById('blind');
+  b.textContent=s.blind?'blind':'predictions shown';
+  b.className='toggle'+(s.blind?'':' off');
+  b.title=s.blind?'model answers are withheld until you commit':
+    'judgements made now are recorded as not blind and excluded from scoring by default';
+  document.getElementById('count').textContent=s.done+' / '+s.total;
+  document.getElementById('prog').style.width=(s.total?100*s.done/s.total:0)+'%';
+}
+
+function show(v){view=v;
+  document.getElementById('judge').style.display=v==='judge'?'':'none';
+  document.getElementById('score').style.display=v==='score'?'':'none';
+  document.getElementById('tJudge').className='tab'+(v==='judge'?' on':'');
+  document.getElementById('tScore').className='tab'+(v==='score'?' on':'');
+  if(v==='score')loadScore();}
+
+async function setPass(){const r=await post('./pass',{mode:document.getElementById('mode').value});
+  paintState(r);document.getElementById('reveal').style.display='none';next();}
+
+async function toggleBlind(){const r=await post('./pass',{blind:!CFG.blind});
+  CFG.blind=r.blind;paintState(r);next();}
+
+async function post(url,body){return (await (await fetch(url,{method:'POST',
+  headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})).json());}
+
+function esc(s){const d=document.createElement('div');d.textContent=s==null?'':String(s);
+  return d.innerHTML}
 
 async function next(){const r=await (await fetch('./next')).json();
-  document.getElementById('count').textContent=r.done+' / '+r.total+' judged';
-  document.getElementById('prog').style.width=(r.total?100*r.done/r.total:0)+'%';
-  if(!r.item){document.getElementById('app').innerHTML='<div class="card done"><h2>Done.</h2>'+
-    '<p>'+r.done+' judgements saved.</p><p class="count">Close this tab; stop the server with Ctrl-C.</p></div>';
-    return;}
+  CFG.blind=r.blind;paintState(r);
+  if(!r.item){document.getElementById('app').innerHTML='<div class="card done">'+
+    '<h2>Nothing left in this pass.</h2><p class="note">'+r.done+' of '+r.total+
+    ' judged. Switch pass above, or open Results.</p></div>';return;}
   item=r.item;render();}
-
-function esc(s){const d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML}
 
 function render(){let o='';
   for(const g in CFG.groups){o+='<div class="grp">'+esc(g.replace(/_/g,' '))+'</div>';
-    CFG.groups[g].forEach(id=>{o+='<label class="opt" onmouseenter="showDef(\\''+id+'\\')">'+
-      '<input type="radio" name="label" value="'+esc(id)+'" onchange="pick(this)">'+esc(id)+'</label>';});}
-  o+='<div class="grp">no match</div><label class="opt" onmouseenter="showDef(null)">'+
-    '<input type="radio" name="label" value="__none__" onchange="pick(this)">none of these fit</label>'+
-    '<div id="why" style="display:none;margin:6px 0 0 10px">';
-  CFG.reasons.forEach(r=>{o+='<label class="opt"><input type="radio" name="why" value="'+esc(r[0])+
-    '" onchange="enable()">'+esc(r[1])+'</label>';});
+    CFG.groups[g].forEach(id=>{o+='<label class="opt" data-def="'+esc(id)+'">'+
+      '<input type="radio" name="label" value="'+esc(id)+'" onchange="pick(this)">'+
+      esc(id)+'</label>';});}
+  o+='<div class="grp">no match</div><label class="opt" data-def="">'+
+    '<input type="radio" name="label" value="__none__" onchange="pick(this)">'+
+    'none of these fit</label><div id="why" style="display:none;margin:6px 0 0 10px">';
+  CFG.reasons.forEach(r=>{o+='<label class="opt"><input type="radio" name="why" value="'+
+    esc(r[0])+'" onchange="enable()">'+esc(r[1])+'</label>';});
   o+='</div>';
-
-  let flags='';CFG.flags.forEach(f=>{flags+='<label><input type="checkbox" name="flag" value="'+
-    esc(f)+'"> '+esc(f.replace(/_/g,' '))+'</label>';});
-
+  let flags='';CFG.flags.forEach(f=>{flags+='<label><input type="checkbox" name="flag" '+
+    'value="'+esc(f)+'"> '+esc(f.replace(/_/g,' '))+'</label>';});
   const shown=item.predictions?'<div id="shown"><b>predictions shown before you chose</b> — '+
-    Object.entries(item.predictions).map(([m,v])=>esc(m)+' <code>'+esc(v)+'</code>').join(' · ')+
-    '<br>this judgement is recorded as not blind</div>':'';
-
-  const metaBits=Object.entries(item.meta||{}).slice(0,5)
-    .map(([k,v])=>esc(k)+' '+esc(v)).join(' · ');
-
+    Object.entries(item.predictions).map(([m,v])=>esc(m)+' <b class="mono">'+esc(v)+'</b>')
+    .join(' · ')+'<br>this judgement is recorded as not blind</div>':'';
+  const bits=Object.entries(item.meta||{}).slice(0,5).map(([k,v])=>esc(k)+' '+esc(v)).join(' · ');
   document.getElementById('app').innerHTML=shown+
     '<div class="card"><div class="text" dir="auto">'+esc(item.text)+'</div>'+
-    '<div class="meta">'+metaBits+'</div></div>'+
+    '<div class="meta">'+bits+'</div></div>'+
     '<div class="card"><div class="cols"><div>'+o+
-    '<div class="extras"><label>second, genuinely separate issue<select id="sec">'+
-    '<option value="">— none —</option></select></label>'+flags+
+    '<div class="extras"><label>second, genuinely separate issue'+
+    '<select id="sec" style="width:100%;margin-top:6px"><option value="">— none —</option>'+
+    '</select></label>'+flags+
     '<textarea id="notes" rows="2" placeholder="note (optional)"></textarea>'+
-    '<button id="go" disabled onclick="save(false)">Confirm</button>'+
+    '<button class="go" id="go" disabled onclick="save(false)">Confirm</button>'+
     '<button class="ghost" onclick="save(true)">Skip</button>'+
-    '<button class="ghost" onclick="goBack()">◀ redo an earlier one</button>'+
+    '<button class="ghost" onclick="goBack()">◀ redo earlier</button>'+
     '</div></div><div><div id="def"><h3>hover a label</h3>'+
-    '<p>Its definition, examples and boundary note appear here.</p></div></div></div></div>';
-}
+    '<p class="note">Its definition, examples and boundary note appear here.</p>'+
+    '</div></div></div></div>';}
 
 function showDef(id){const d=document.getElementById('def');
-  if(!id){d.innerHTML='<h3>none of these fit</h3><p>Use this when no label genuinely '+
-    'applies. Do not force an item into the nearest one — a forced label is a wrong '+
-    'label that looks like a right one.</p>';return}
+  if(!id){d.innerHTML='<h3>none of these fit</h3><p class="note">Use this when no label '+
+    'genuinely applies. Forcing an item into the nearest one produces a wrong label that '+
+    'looks like a right one.</p>';return}
   const l=CFG.defs[id];if(!l){d.innerHTML='<h3>'+esc(id)+'</h3>';return}
   d.innerHTML='<h3>'+esc(id)+'</h3><p>'+esc(l.definition)+'</p>'+
     (l.positive_examples||[]).map(e=>'<p class="ex" dir="auto">✓ '+esc(e)+'</p>').join('')+
@@ -118,10 +208,9 @@ function showDef(id){const d=document.getElementById('def');
 
 function pick(el){document.querySelectorAll('label.opt').forEach(l=>l.classList.remove('sel'));
   el.closest('label').classList.add('sel');
-  const none=el.value==='__none__';
-  document.getElementById('why').style.display=none?'block':'none';
-  const sec=document.getElementById('sec');
-  sec.innerHTML='<option value="">— none —</option>'+CFG.ids.filter(i=>i!==el.value)
+  document.getElementById('why').style.display=el.value==='__none__'?'block':'none';
+  const s=document.getElementById('sec');
+  s.innerHTML='<option value="">— none —</option>'+CFG.ids.filter(i=>i!==el.value)
     .map(i=>'<option value="'+esc(i)+'">'+esc(i)+'</option>').join('');
   enable();}
 
@@ -131,39 +220,142 @@ function enable(){const p=document.querySelector('input[name=label]:checked');
 
 async function save(skip){const p=document.querySelector('input[name=label]:checked');
   const w=document.querySelector('input[name=why]:checked');
-  const flags={};document.querySelectorAll('input[name=flag]:checked').forEach(f=>flags[f.value]=true);
+  const flags={};document.querySelectorAll('input[name=flag]:checked')
+    .forEach(f=>flags[f.value]=true);
   if(w)flags['reason:'+w.value]=true;
-  const body={item_id:item.id,skipped:!!skip,
-    label:skip?null:p.value,secondary:skip?null:(document.getElementById('sec').value||null),
+  const body={item_id:item.id,skipped:!!skip,label:skip?null:p.value,
+    secondary:skip?null:(document.getElementById('sec').value||null),
     flags:skip?{}:flags,notes:skip?'':document.getElementById('notes').value};
-  const res=await (await fetch('./save',{method:'POST',
-    headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})).json();
-  reveal(res,body.label);back=0;prev=null;next();}
+  const res=await post('./save',body);reveal(res,body.label);back=0;paintState(res);next();}
 
 function reveal(res,mine){const r=document.getElementById('reveal');
   if(!res.predictions||!Object.keys(res.predictions).length){r.style.display='none';return}
-  const vals=Object.values(res.predictions);
-  r.style.display='block';
-  r.innerHTML='you chose <b>'+esc(mine)+'</b> · '+
-    Object.entries(res.predictions).map(([m,v])=>esc(m)+' <b>'+esc(v)+'</b>').join(' · ')+
-    (new Set(vals).size===1?' — they agreed.':' — <b>they disagreed.</b>');}
+  const vals=Object.values(res.predictions);r.style.display='block';
+  r.innerHTML='you chose <b class="mono">'+esc(mine)+'</b> · '+
+    Object.entries(res.predictions).map(([m,v])=>esc(m)+' <b class="mono">'+esc(v)+'</b>')
+    .join(' · ')+(new Set(vals).size===1?' — they agreed.':' — <b>they disagreed.</b>');}
 
 async function goBack(){const r=await (await fetch('./back?steps='+(back+1))).json();
   if(!r.item){alert('No earlier judgement to redo.');return}
-  back=r.steps;item=r.item;prev=r.previous;render();restore(prev);
+  back=r.steps;item=r.item;render();restore(r.previous);
   document.getElementById('reveal').style.display='none';}
 
 function restore(p){if(!p)return;
   const radio=document.querySelector('input[name=label][value="'+(p.label||'')+'"]');
   if(radio){radio.checked=true;pick(radio);}
   Object.keys(p.flags||{}).forEach(f=>{
-    if(f.startsWith('reason:')){const w=document.querySelector('input[name=why][value="'+f.slice(7)+'"]');
-      if(w){w.checked=true;}}
+    if(f.startsWith('reason:')){const w=document.querySelector(
+      'input[name=why][value="'+f.slice(7)+'"]');if(w)w.checked=true;}
     else{const c=document.querySelector('input[name=flag][value="'+f+'"]');if(c)c.checked=true;}});
   if(p.secondary){const s=document.getElementById('sec');if(s)s.value=p.secondary;}
   document.getElementById('notes').value=p.notes||'';enable();
-  const h=document.createElement('div');h.className='meta';h.style.color='#8a5a2b';
+  const h=document.createElement('div');h.className='meta warnnote';
   h.textContent='revising — you had chosen: '+(p.label||'skipped');
   document.querySelector('.card').appendChild(h);}
+
+const GLOSS={
+ correct:'How many the model got right, out of the items you judged.',
+ rate:'Correct divided by judged, as a percentage.',
+ ci:'The range the true rate plausibly sits in. Computed as a Wilson interval, which '+
+    'stays honest on small samples where the usual formula does not. A wide band means '+
+    'few items, not a worse model.',
+ estimate:'The bar is the plausible range; the tick is the single best guess. Two rows '+
+    'whose bars overlap are not reliably different.',
+ joint:'Items where every model gave the same answer and all of them were wrong. '+
+    'Agreement between models can never reveal this - they look confident and are not. '+
+    'Only a human label exposes it.',
+ kappa:'Agreement between two models, discounted for what chance alone would produce. '+
+    '1.0 is perfect, 0 is no better than guessing. Above 0.8 is usually called strong.',
+ excluded:'Judgements not counted: ones you skipped, and ones made while the model '+
+    'answers were on screen. A skipped item is an unanswered question, not a wrong '+
+    'answer, and mixing two protocols into one number makes it meaningless.',
+ spread:'The gap between the best and worst group. On its own it means little - a gap '+
+    'can appear from chance alone.',
+ p:'How often pure chance would produce a gap this large. Below 0.05 is the usual bar '+
+   'for calling a difference real. 0.7 means seven times in ten, chance alone does this.',
+ mde:'The smallest gap this many items could reliably have found. If it is larger than '+
+    'the gap you observed, a real difference could be hiding - the result is a ceiling, '+
+    'not a zero.',
+ blind:'Model answers are withheld until after you commit. Being shown two candidates '+
+    'and asked which is better is a preference, not an independent judgement.',
+ controls:'Items where the models already agree with each other. Judging them is the '+
+    'only way to catch the case where every model is wrong together.'};
+
+function t(key,text){return '<span class="t" tabindex="0" title="'+esc(GLOSS[key])+'">'+
+  esc(text)+'</span>';}
+
+function band(r){
+  const lo=Math.max(0,r.low),hi=Math.min(100,r.high);
+  return '<td class="n">'+r.hits+'/'+r.total+'</td>'+
+    '<td class="n rate">'+r.pct.toFixed(1)+'%</td>'+
+    '<td class="n">'+lo.toFixed(1)+'–'+hi.toFixed(1)+'</td>'+
+    '<td class="gauge-c"><div class="gauge" title="'+r.pct.toFixed(1)+'% — plausible '+
+    'range '+lo.toFixed(1)+' to '+hi.toFixed(1)+'"><i style="left:'+lo+'%;width:'+
+    Math.max(hi-lo,0.8)+'%"></i><b style="left:'+r.pct+'%"></b></div></td>';}
+
+function head(first){return '<colgroup><col class="c-name"><col class="c-num">'+
+  '<col class="c-rate"><col class="c-ci"><col class="c-gauge"></colgroup><thead><tr><th>'+
+  esc(first||'measure')+'</th><th class="n">'+t('correct','correct')+
+  '</th><th class="n">'+t('rate','rate')+'</th><th class="n">'+t('ci','95% range')+
+  '</th><th class="gauge-h">'+t('estimate','estimate')+'</th></tr></thead>';}
+
+async function loadScore(){const el=document.getElementById('score');
+  el.innerHTML='<div class="card"><p class="note">computing…</p></div>';
+  const by=CFG.by||'';const s=await (await fetch('./score'+(by?'?by='+by:''))).json();
+
+  let h='<div class="card"><h2>Coverage</h2><p class="note">'+s.items+' items · '+
+    s.judged+' judged · <b>'+s.scored+' scored</b>'+
+    (s.excluded?' · '+t('excluded',s.excluded+' excluded'):'')+'</p></div>';
+
+  if(!s.models.length){h+='<div class="card"><p class="note">No model predictions in '+
+    'this dataset — nothing to score against.</p></div>';el.innerHTML=h;return;}
+
+  h+='<div class="card"><h2>Accuracy against your judgements</h2><table>'+head('model')+'<tbody>';
+  s.models.forEach(m=>{h+='<tr><td class="name">'+esc(m.model)+'</td>'+band(m)+'</tr>';});
+  h+='</tbody></table></div><p class="note">Bars that overlap are not reliably '+
+    'different — read the range, not the point.</p></div>';
+
+  if(s.joint){h+='<div class="card"><h2>'+t('joint','Every model agreed — and was wrong')+
+    '</h2><table>'+head('')+'<tbody><tr>'+
+    '<td class="name">all agreed, all wrong</td>'+band(s.joint)+'</tr></tbody></table>'+
+    '<p class="note">Agreement between models cannot surface this. Only your labels can.'+
+    '</p></div>';}
+
+  if(s.agreement){h+='<div class="card"><h2>Do the models agree with each other?'+
+    '<span class="sub">'+esc(s.agreement.pair)+'</span></h2><table>'+
+    head('')+'<tbody><tr><td class="name">same answer</td>'+band(s.agreement)+
+    '</tr></tbody></table></div><p class="note">'+t('kappa',"Cohen's kappa")+' '+
+    s.agreement.kappa+'</p></div>';}
+
+  if(s.fields.length){h+='<div class="card"><h2>Break the numbers down</h2>'+
+    '<p class="note">Split accuracy by any field in your data.</p><p>'+
+    s.fields.map(f=>'<button class="chip'+(f===by?' on':'')+'" data-field="'+
+      esc(f)+'">'+esc(f)+'</button>').join('')+
+    (by?'<button class="chip" data-field="">clear</button>':'')+'</p></div>';}
+
+  s.groups.forEach(g=>{
+    h+='<div class="card"><h2>'+esc(g.model)+'<span class="sub">by '+esc(s.by)+
+      '</span></h2><table>'+head(s.by)+'<tbody>';
+    g.cells.forEach(c=>{h+='<tr><td class="name">'+esc(c.group)+'</td>'+band(c)+'</tr>';});
+    h+='</tbody></table></div><p class="note">'+t('spread','spread')+' '+g.spread+
+      ' pts · '+t('p','p')+' = '+g.p+' — '+
+      (g.significant?'<b>a real difference</b>':'no significant difference')+'</p>'+
+      '<p class="note">'+t('mde','This design could detect')+' '+g.mde+
+      ' pts at 80% power.'+((!g.significant&&g.needed)?' A gap this size would need n='+
+      g.needed+' per group to confirm — read the null as a ceiling, not a zero.':'')+
+      '</p></div>';});
+
+  el.innerHTML=h;}
+
+function setBy(f){CFG.by=f;loadScore();}
+
+// One listener each, rather than a handler written into every element: the markup
+// carries data, not code, so nothing in it needs escaping.
+document.addEventListener('mouseover',e=>{
+  const el=e.target.closest('[data-def]');
+  if(el)showDef(el.dataset.def||null);});
+document.addEventListener('click',e=>{
+  const el=e.target.closest('[data-field]');
+  if(el){e.preventDefault();setBy(el.dataset.field);}});
 boot();
 </script></body></html>"""

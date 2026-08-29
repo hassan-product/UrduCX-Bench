@@ -60,7 +60,7 @@ def test_predictions_are_absent_from_a_blind_payload_not_merely_hidden() -> None
 def test_a_judgement_records_the_regime_it_was_made_under(tmp_path: Path) -> None:
     labels = load_labels(Path("config/taxonomy.yaml"))
     session = Session(
-        worklist=[_item("a", m="x")],
+        items=[_item("a", m="x")],
         labels=labels,
         output=tmp_path / "out.jsonl",
         blind=False,
@@ -74,7 +74,7 @@ def test_a_judgement_records_the_regime_it_was_made_under(tmp_path: Path) -> Non
 
 def test_a_secondary_identical_to_the_primary_is_discarded(tmp_path: Path) -> None:
     session = Session(
-        worklist=[_item("a")],
+        items=[_item("a")],
         labels=load_labels(Path("config/taxonomy.yaml")),
         output=tmp_path / "out.jsonl",
     )
@@ -191,7 +191,7 @@ def test_progress_counts_against_this_pass_not_every_judgement_ever_made() -> No
 def test_rejudging_replaces_the_record_rather_than_appending(tmp_path: Path) -> None:
     path = tmp_path / "out.jsonl"
     session = Session(
-        worklist=[_item("a")],
+        items=[_item("a")],
         labels=load_labels(Path("config/taxonomy.yaml")),
         output=path,
     )
@@ -310,3 +310,86 @@ def test_by_group_splits_on_a_metadata_field() -> None:
     cells = by_group(pairs, "m", "lang")
 
     assert cells == {"ur": (1, 1), "en": (0, 1)}
+
+
+# --- switching pass without restarting --------------------------------------
+
+
+def _session(tmp_path: Path, items: list[Item], **kwargs: object) -> Session:
+    return Session(
+        items=items,
+        labels=load_labels(Path("config/taxonomy.yaml")),
+        output=tmp_path / "out.jsonl",
+        **kwargs,
+    )
+
+
+def test_switching_pass_rebuilds_the_worklist(tmp_path: Path) -> None:
+    items = [_item("a", x="p", y="p"), _item("b", x="p", y="q")]
+    session = _session(tmp_path, items)
+    assert len(session.worklist) == 2
+
+    session.set_pass("controls", None)
+
+    assert [i.id for i in session.worklist] == ["a"], "controls are the agreed items"
+
+
+def test_blindness_can_be_turned_off_mid_session_and_is_recorded(tmp_path: Path) -> None:
+    session = _session(tmp_path, [_item("a", m="p")])
+
+    session.set_pass(None, False)
+    judgement = session.record({"item_id": "a", "label": "login_failure"})
+
+    assert session.blind is False
+    assert judgement.blind is False, "the regime must travel with the judgement"
+
+
+def test_an_unknown_mode_is_ignored_rather_than_emptying_the_worklist(tmp_path: Path) -> None:
+    session = _session(tmp_path, [_item("a"), _item("b")])
+
+    session.set_pass("nonsense", None)
+
+    assert session.mode == "all"
+    assert len(session.worklist) == 2
+
+
+def test_counts_report_every_pass_so_the_interface_can_offer_them(tmp_path: Path) -> None:
+    items = [_item("a", x="p", y="p"), _item("b", x="p", y="q")]
+    session = _session(tmp_path, items)
+
+    counts = session.counts()
+
+    assert counts["all"] == 2
+    assert counts["controls"] == 1
+    assert counts["recheck"] == 0, "nothing judged yet, so nothing to re-check"
+
+
+def test_the_score_report_excludes_skipped_and_unblind_judgements(tmp_path: Path) -> None:
+    items = [_item(k, x="p", y="p") for k in "abc"]
+    session = _session(tmp_path, items)
+    session.record({"item_id": "a", "label": "p"})
+    session.record({"item_id": "b", "skipped": True})
+    session.set_pass(None, False)
+    session.record({"item_id": "c", "label": "p"})
+
+    report = session.score(by=None)
+
+    assert report["judged"] == 3
+    assert report["scored"] == 1
+    assert report["excluded"] == 2
+
+
+def test_the_score_report_offers_only_fields_present_in_the_data(tmp_path: Path) -> None:
+    items = [
+        Item(id="a", text="t", meta={"language": "urdu"}, predictions={"m": "p"}),
+        Item(id="b", text="t", meta={"language": "english"}, predictions={"m": "q"}),
+    ]
+    session = _session(tmp_path, items)
+    session.record({"item_id": "a", "label": "p"})
+    session.record({"item_id": "b", "label": "p"})
+
+    report = session.score(by="language", rounds=200)
+
+    assert report["fields"] == ["language"]
+    assert report["groups"], "a two-group split should produce a breakdown"
+    assert "mde" in report["groups"][0], "a null needs its detectable effect reported"

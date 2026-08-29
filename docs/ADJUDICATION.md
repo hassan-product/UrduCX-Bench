@@ -23,6 +23,20 @@ Agreement looks like confidence and isn't.
 The only method that worked was a person reading items and deciding, without seeing the
 machine's answer first. This tool makes that method cheap enough to actually do.
 
+## Try it with no data of your own
+
+```bash
+python -m src.adjudicate judge --demo
+```
+
+Writes a synthetic dataset to `demo_data/` and opens the app on it: 120 invented support
+tickets, nine labels, two models that disagree often enough for the controls pass to mean
+something, and one region given a genuine deficit so the subgroup test has something to
+find. Delete the directory when you're done.
+
+Real evaluation data is customer text and does not travel. The demo exists so the tool can
+be shown working without it.
+
 ## Install
 
 Python 3.11+, no third-party dependencies beyond PyYAML.
@@ -32,6 +46,9 @@ python -m pip install -r requirements.txt
 ```
 
 ## Judge
+
+Judging and results are one application. The pass and the blindness setting are controls
+in the interface, not flags you restart to change.
 
 ```bash
 python -m src.adjudicate judge \
@@ -96,14 +113,32 @@ Reports accuracy per model with confidence intervals, inter-model agreement with
 kappa, the joint-error rate, and — if you pass `--by` — a subgroup breakdown with a
 permutation test and a power statement.
 
-## Modes
+## Reading the results
 
-| Mode | Purpose |
+Each row is an estimate with its uncertainty:
+
+```
+49.0–62.5   ────────▉▉▉▉▉▉│▉▉▉▉▉▉────────
+             band = the plausible range
+                          tick = the single best guess
+```
+
+**The band is the finding; the tick is only its midpoint.** Two rows whose bands overlap
+are not reliably different, however far apart their percentages look. A very wide band
+means few items in that cell, not a worse model.
+
+Every technical term in the interface carries a plain-language tooltip on hover or focus.
+
+## Passes
+
+Switch between these in the header dropdown; each shows its item count.
+
+| Pass | Purpose |
 |---|---|
-| `--mode all` | everything not yet judged (default) |
-| `--mode controls` | only items the models already agree on |
-| `--mode recheck` | items already judged, served blind again |
-| `--mode revisit` | items judged under an older `version` of the labels |
+| all | everything not yet judged |
+| controls | only items the models already agree on |
+| recheck | items already judged, served blind again |
+| revisit | items judged under an older `version` of the labels |
 
 **`controls`** is how joint error becomes visible. Where models agree, inter-model
 agreement can never reveal that they are all wrong — only a human can.
