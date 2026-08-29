@@ -9,10 +9,19 @@
 # money back is a speech act, not a failure type, so it is recorded in the orthogonal
 # refund_requested flag and only becomes the intent when it is the whole complaint.
 #
+# v3 (2026-08-30) adds two intents that human adjudication showed the scheme was missing.
+# Both were measured before being added, not added because they felt absent:
+#   support_unresponsive    6.0% of the corpus. scam_impersonation_report and
+#                           harassment_or_abuse_via_platform each push this case away in
+#                           their own negative examples, and nothing took it in.
+#   card_activation_failed  1.9%. Card complaints scattered across five unrelated intents
+#                           (feature_request, kyc_stuck, account_blocked, sim_issue,
+#                           package_not_activated) because none of them fits.
+#
 # PRECEDENCE RULE: when a complaint names a concrete underlying failure, that failure
 # is the intent. Set refund_requested = true to record the money-back ask, and use
 # intent_secondary = refund_request where a secondary intent is collected.
-version: 2
+version: 3
 intents:
   # A. Billing & Charges
   # NOTE: users write "scam", "fraud" and "unauthorized" to describe exactly this intent -
@@ -298,6 +307,35 @@ intents:
     negative_rationale: >-
       Not a question; it reports a completed action (application) with an
       unexplained negative outcome, closer to loan_repayment_dispute.
+
+  - id: support_unresponsive
+    family: product_and_navigation
+    definition: >-
+      The complaint is that the provider never responded - helpline unanswered, complaint
+      unacknowledged, in-app support silent - rather than about a specific product failure.
+      Where a concrete failure is also named, that failure is the intent under the
+      precedence rule and this is recorded as intent_secondary.
+    positive_examples:
+      - "I call help line 3 time, first they say will contact you in 48 hours, no one called"
+      - "ہیلپ لائن پر کوئی جواب نہیں دیتا، تین ہفتے سے شکایت درج ہے"
+    negative_example: "The support agent started swearing at me when I complained"
+    negative_rationale: >-
+      Describes abusive conduct by a person who did respond, not an absence of response;
+      that is harassment_or_abuse_via_platform.
+
+  - id: card_activation_failed
+    family: access_and_account
+    definition: >-
+      A debit, credit, or virtual card was ordered or issued but never arrived, never
+      activated, or never worked. Distinct from package_not_activated, which covers
+      telecom bundles and service packages rather than cards.
+    positive_examples:
+      - "Peechlay 1.5 month say manay apna debit Mastercard order kia howa ha but abhi tak received nahe howa"
+      - "aik baar visa wala card leeya enhu ne 100 rupee cut keye aur card chala e nhi"
+    negative_example: "My card was blocked after I entered the wrong PIN three times"
+    negative_rationale: >-
+      The card was working and was then blocked by the provider; that is
+      account_blocked_frozen, not a failure to activate or deliver.
 
 languages:
   - urdu_script

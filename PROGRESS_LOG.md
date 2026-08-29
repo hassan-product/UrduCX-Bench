@@ -29,8 +29,8 @@ onward.
 | 1 — Data collection | **Done** | 17 products collected; ~107.8k unique reviews; validator printed; human reviewed localhost previews |
 | 2 — Cleaning, language & PII | **Done** | 54,519 cleaned; hardened typed PII matching supports three numeral systems; 9,000-item derived scrubbed file and human audit completed without overwriting source layers |
 | 2.5 — Script-gap pilot | **Done** | 4 models, 320 classifications, $0.75. Script-gap hypothesis **not supported**; a taxonomy defect caused 61% of v1 errors; taxonomy raised to v2. The apparent consistency effect largely dissolved under v2, which is itself the finding: underspecified labels manufacture apparent script effects |
-| 3 — Sampling & auto-labelling | **Diagnostic done; full run pending** | 500-item stratified diagnostic labelled by Sonnet 5 and Opus 5 ($4.39); starved-intent hunt and top-up over all 54,519 reviews ($2.80). Taxonomy validated on real data for the first time. Pipeline now carries structured outputs, enum-bound intents, prompt caching, and full request cache identity. The 9,000-item run is unblocked but deliberately deferred until human gold labels confirm the labelling |
-| 4 — Human verification | **In progress** | Blind adjudication tool built and running locally; 200-item worklist (100 model disagreements + 100 controls). Maintainer adjudicating. This is the only remaining step that cannot be automated |
+| 3 — Sampling & auto-labelling | **Diagnostic done; full run pending** | 500-item diagnostic across two models; starved-intent hunt and top-up over all 54,519 reviews; taxonomy raised to **v3 (26 intents)** after human adjudication exposed two missing categories, with both models re-labelled against it. The 9,000-item run remains deferred until the labelling is validated |
+| 4 — Human verification | **Done** | 125 gold labels decomposing the agreement gap, plus 204 blind gold labels from a length-matched Urdu pass that settles the founding hypothesis. Remaining passes (50 controls, 50 blind re-check) are optional hardening, not blockers |
 | 5 — Benchmark task building | Not started | Blocked on Phase 4 |
 | 6 — Scoring harness | Not started | Blocked on Phase 5 |
 | 7 — Publication | Not started | Blocked on Phase 6 |
@@ -817,6 +817,56 @@ judgement is saved. Verified over the wire: `/next` returns only `review_id`, `t
 
 - Verification: `ruff check .` clean, 161 tests passing (was 147). Session spend ~$7.50 of $150.
 
+### Phase 4 — the script-gap question, answered (2026-08-29/30)
+
+The project was built to test whether models handle Urdu-script and Roman-Urdu complaints
+worse than English. Two earlier attempts could not answer it: Phase 2.5 held content
+constant across four scripts but had n=20, and the Phase 3 diagnostic enriched its sample
+for model disagreement, which distorts accuracy and left per-language cells of 5-9 items.
+
+**Job 31 — a design that could answer.** `spike/phase3_diag/urdu_pass.py` drew ~60 reviews
+per language form, random within each language and **matched to the Urdu-script length
+profile**, because Urdu-script complaints run a median 23 words against English's 14 and an
+unmatched comparison would measure verbosity. 239 items, both models, blind human
+adjudication.
+
+**Job 32 — taxonomy v3.** Adjudication surfaced two categories the scheme lacked, both
+measured before being added: `support_unresponsive` (6.0% of the corpus; two v2 intents push
+this case away in their own negative examples and nothing took it in) and
+`card_activation_failed` (1.9%; card complaints scattered across five unrelated intents).
+Both models were re-labelled against v3 for $1.76 so annotator and model worked from the
+same 26 options - without that, choosing a new intent would have scored as a model error
+when the model was never offered the answer. A revisit pass, keyed on taxonomy version so
+items leave the list as they are re-judged, cleared the earlier judgements made under v2.
+
+**Result — the founding hypothesis is not supported.** Accuracy against 204 blind gold
+labels, ~50 per language:
+
+| Language | Sonnet 5 | Opus 5 |
+|---|---|---|
+| Urdu script | 62.0% | 64.0% |
+| Roman Urdu | **68.6%** | **64.7%** |
+| Code-switched | 63.6% | 56.4% |
+| English | 60.4% | 54.2% |
+
+English ranks last for both models, Roman Urdu first, spread 8-10 points, every interval
+overlapping every other. Performance is uniform across script at 55-65%, independently
+replicating the ~63% measured on a separate sample two days earlier.
+
+**Two defects found and fixed on the way:**
+
+- `max_tokens=300` truncated rationales mid-string on longer non-English reviews, surfacing
+  as a JSON parse failure rather than a length error. It dropped 8 items, 4 of them Roman
+  Urdu - the language then showing the weakest score. Urdu script and Roman Urdu tokenize
+  less efficiently than English, so an identical budget silently favours English inputs.
+  Raised to 700; zero failures on the re-run.
+- 13 skipped reviews were counted in the denominator as model misses, unevenly distributed
+  (6 Urdu script against 2 English), suppressing Urdu-script accuracy by ~6 points and
+  manufacturing a gap in the direction of the hypothesis. Same defect as Issue 13. Both
+  times the error flattered the prior.
+
+- Verification: `ruff check .` clean, 161 tests passing.
+
 ---
 
 ## 4. Key decisions and their reasoning
@@ -1005,6 +1055,33 @@ judgement is saved. Verified over the wire: `/next` returns only `review_id`, `t
   caution — 490 items support a strong failure to detect a gap, not proof of absence — and the
   Phase 2.5 v1→v2 contrast supplies the companion claim that underspecified labels manufacture
   apparent script effects.
+
+33. **Taxonomy raised to v3, and both models re-labelled against it (2026-08-30).** Human
+  adjudication showed the 24-intent scheme had no home for two recurring complaint types.
+  Adding them was not enough on its own: the models had labelled every item against 24
+  options, so an annotator picking a 25th or 26th would have scored as a model error when
+  the model was never offered the answer. Re-labelling all 239 items under v3 cost $1.76
+  and put annotator and model on the same footing. The cache key already carried the
+  taxonomy version, so the v2 labels behind the 125-item decomposition were untouched and
+  that result remains a clean v2 measurement.
+
+34. **The revisit list is keyed on taxonomy version, not on a fixed set (2026-08-30).**
+  Judgements now record the taxonomy version they were made under, so an item appears on
+  the revisit page only while it predates the current version, and leaves the moment it is
+  re-judged. Both pages write the same file and saving replaces by review id, so two
+  browser tabs stay consistent with no merge step. The selection rule was later widened
+  from keyword matching to "a model itself chose one of the new intents", which is the
+  stronger test - it catches every case where the annotator lacked an option the model had,
+  without depending on a hand-written pattern, and it found six genuine gaps where keywords
+  had found three.
+
+35. **Length is matched, subject matter is not, and the difference is stated (2026-08-30).**
+  Urdu-script complaints run a median 23 words against English's 14, so an unmatched
+  language comparison would partly measure verbosity. Matching removes that. It does not
+  remove the content confound - Urdu-script reviews skew toward UX complaints and English
+  toward OTP - and no real-corpus design can, since language and subject matter are
+  genuinely correlated in the population. Only a parallel corpus separates them, which is
+  what Phase 2.5 was and why that design was right despite its sample size.
 
 ---
 
@@ -1217,83 +1294,106 @@ judgement is saved. Verified over the wire: `/next` returns only `review_id`, `t
   added because retrieval yield decays down the ranking, so the rate observed in the first slice
   over-predicts. No spend cost — every reply was already cached.
 
+### Issue 22 — A token budget that looks language-neutral is not (Phase 4)
+- **What happened:** `max_tokens=300` truncated the model's reply mid-string on longer
+  non-English reviews. It surfaced as `Unterminated string` from the JSON parser, not as a
+  length error, so the cause was not obvious from the message.
+- **Why it mattered:** it silently dropped 8 items, 4 of them Roman Urdu - the language
+  then showing the weakest agreement. A sample thinned unevenly by language is exactly what
+  a script-gap study cannot tolerate.
+- **Root cause:** Urdu script and Roman Urdu tokenize less efficiently than English, so an
+  identical budget buys fewer words. The default favoured English without appearing to.
+- **Fix:** raised to 700 and re-ran; zero failures, all four languages restored to 59-60.
+
+### Issue 23 — Skipped items scored as model errors (Phase 4)
+- **What happened:** 13 reviews the annotator skipped sat in the accuracy denominator as
+  automatic misses.
+- **Why it mattered:** they were unevenly distributed - 6 Urdu script against 2 English -
+  and suppressed Urdu-script accuracy by roughly 6 points, manufacturing a gap in the
+  direction of the founding hypothesis. Urdu script moved 56.4% -> 62.0% once excluded.
+- **Root cause:** the same confusion as Issue 13, where rate-limited calls were counted as
+  wrong answers. An unanswered item is not a wrong answer. Both occurrences pushed the
+  result toward the prior, which is the direction that gets believed rather than checked.
+- **Fix:** skipped items excluded from the denominator and reported separately, matching
+  the convention already used for unanswered API calls.
+
+### Issue 24 — A quoting bug blanked the adjudication page (Phase 4)
+- **What happened:** adding the v3 intent group emitted `showV3(''+v[0]+''` into the page.
+  Two adjacent string literals with no operator is a hard parse error, so the entire
+  `<script>` block failed and the page rendered a header and nothing else.
+- **Root cause:** the page HTML lives inside a Python `"""` block, where `\'` collapses to
+  `'` before reaching the browser. The working line directly above it used `\\'`.
+- **Fix:** raw strings for the escape, and the descriptive text no longer travels through
+  an HTML attribute at all - only an id is passed and the text is looked up in JS, so the
+  class of bug cannot recur. `node --check` on the extracted script is now run before
+  restarting the server; it identified the exact line immediately.
+
 ---
 
 ## 6. Work pending / next steps
 
-**Immediate next action: the maintainer adjudicates the 200-item blind worklist. Nothing else on
-the critical path can proceed without it, and nothing else requires a human.**
+**Every measurement the paper needs is complete. What remains is writing.**
 
-Run it with `python -m spike.phase3_diag.adjudicate`, then open http://127.0.0.1:8790.
-Progress saves after every judgement; a partial pass is still an unbiased sample because the
-worklist is seeded and shuffled.
+### What the evidence now supports
 
-### Why this step and not the 9,000-item run
-
-Everything measured on real data so far is inter-model *agreement*, not accuracy, because real
-reviews have no gold labels. For the headline claim that is sufficient — agreement is the metric
-on both sides of the authored-versus-real comparison. It is not sufficient for the question a
-reader asks immediately afterwards:
-
-> Is the 25-point drop because real complaints are genuinely harder, or because the taxonomy is
-> ambiguous on messy text?
-
-The answer lives in the 100 disagreements. Adjudicating them splits the gap three ways — one
-model right and one wrong (real difficulty), both defensible (taxonomy ambiguity on real text),
-neither right (coverage gap). That decomposition is the contribution; without it the project has
-an observation rather than a finding. Labelling 9,000 items before the labelling itself is
-validated would be paying to scale something unverified.
+| Finding | Figure | Basis |
+|---|---|---|
+| Authored items overstate agreement | 100% vs 74.9% | identical models, taxonomy, prompt, metric |
+| ...and overstate accuracy further | 95% vs ~63% | authored gold vs human gold |
+| Agreement is not correctness | both wrong on 30.8% | 26 controls where the models agreed |
+| Disagreements are two-thirds difficulty | 68.7% / 31.3% | 99 adjudicated disagreements |
+| **No script gap** | 8-10 point spread, all overlapping | 204 blind gold labels, length-matched |
+| Keyword severity fails by script | 17 Urdu misses to 1 English | proxy vs labelled `financial_loss` |
+| Reviews capture fraud only when the platform is blamed | 0 of 54,519 | two independent searches |
 
 ### Ordered plan
 
-1. **Adjudicate 200 items** — maintainer, ~2 hours. In progress.
-2. **Compute the decomposition** — automated, minutes. Splits the 25.1-point gap and yields the
-  first human-verified accuracy figures in the project.
-3. ~~Top up the starved intents~~ **Done (Job 27).** Five intents brought to ≥30.
-4. **Label the full 9,000** — ~$21 on Sonnet 5 with caching, one afternoon. For the dataset
-  release rather than the paper. Deferred until step 2 confirms the labelling is sound.
-5. **Draft the paper.** Four findings, ordered by strength: the authored-versus-real gap (100% vs
-  74.9%, identical conditions); no script gap on real complaints (kappa 0.72–0.82, n≈123 per
-  form); keyword severity detection failing 17:1 against Urdu script; app-store reviews capturing
-  fraud only when the platform is blamed. The Phase 2.5 v1→v2 contrast supplies a fifth —
-  underspecified labels manufacture apparent script effects.
-6. **arXiv preprint** for the priority claim, then a venue. WNUT (Workshop on Noisy
-  User-generated Text) is the closest fit: the central finding is that clean authored text
-  overstates model performance against noisy real text. LREC is the alternative if the release
-  leads with the dataset.
-7. **Dataset release.** Publish review ids and derived labels with a rehydration script, not
-  review text — Google's terms prohibit redistributing review content, and the derived-label form
-  costs nothing scientifically.
+1. **Draft the paper.** Outline at `paper/OUTLINE.md`. Sections 3 (Data) and 5 (Design)
+  are pure description and need no further decisions.
+2. **arXiv preprint** for the priority claim, then a venue. WNUT is the closest fit: the
+  central result is that clean authored text overstates performance against noisy real
+  text. LREC is the alternative if the release leads with the dataset.
+3. **Label the full 9,000** (~$21 on Sonnet 5 with caching) for the dataset release. Not
+  needed for the paper.
+4. **Release** review ids and derived labels with a rehydration script, not review text.
+
+### Optional hardening, in value order
+
+- **50 more controls** (~30 min). The 30.8% joint-error figure rests on 26 items, interval
+  [16.5, 50.0]. Another 50 roughly halves that range. Highest value per minute remaining.
+- **Blind self re-check, 50 items** (~30 min, after a week's gap). No second annotator is
+  available, so test-retest is the measurable substitute. A low score is publishable: it
+  would bound what any annotator could reach. `--mode recheck`, then
+  `python -m spike.phase3_diag.self_agreement`.
+- **13 revisit items** (~5 min) at `--mode revisit`, clearing the last taxonomy-version
+  asymmetry. Will not move the headline; 13 of 239.
 
 ### Standing, not blocking
 
-- **Monthly forward collection.** `python -m src.collect.refresh_reviews`. The cron line is in
-  the module docstring and is deliberately **not installed** — a recurring job that reaches an
-  external service belongs to the maintainer to enable. First run collected 5,782 reviews in 61
-  seconds. App stores serve only a recent window, so this is the one asset that cannot be
-  back-filled by a later entrant; a year of monthly runs is roughly 200,000 reviews of genuine
-  time series.
+- **Monthly forward collection.** `python -m src.collect.refresh_reviews`. Cron line is in
+  the module docstring and deliberately **not installed**. First run took 5,782 reviews in
+  61 seconds. App stores serve only a recent window, so this is the one asset a later
+  entrant cannot back-fill.
 
 ### Open decisions
 
 1. Whether to install the collection cron.
-2. Whether the dataset release ships the 500-item diagnostic subset, the 9,000-item run, or both.
-3. Case 05's gold label (carried from Phase 2.5): under the v2 rule its correct answer is
-  `transfer_failed_money_deducted`, but it was authored to test `refund_request`. Either relabel
-  it, leaving no bare-refund case, or rewrite its text. Does not block the diagnostic work, which
-  uses no gold labels.
+2. Naming apps: the findings need no app names, the dataset does. Recommend anonymising in
+  the paper, shipping identifiers under a research licence, and taking Pakistani legal
+  advice before either.
+3. Whether the release ships the diagnostic subset, the 9,000-item run, or both.
+4. Case 05's gold label (carried from Phase 2.5): under the v2 precedence rule its correct
+  answer is `transfer_failed_money_deducted`, but it was authored to test `refund_request`.
+  Relabel it, leaving no bare-refund case, or rewrite its text.
 
 ### Closed since the last entry
 
-- ~~Phase 2.5 headline choice~~ **Closed by Decision 32** — superseded by the authored-versus-real
-  gap, which is stronger than all three options V2 offered.
-- ~~T1 single-label versus multi-label (V2 open question 4)~~ **Closed by Decision 24** — 11.8%
-  multi-intent measured; `intent_secondary` shipped in the schema.
-- ~~Prompt improvement: test definitions-only against definitions-plus-examples~~ **Closed by
-  Issue 15** — not a test, a defect; examples were never optional.
-- ~~Gemini free-tier re-run~~ **Dropped.** The roster is now two Claude models chosen for tied
-  capability (Decision 22); a rate-limited third vendor at 20 requests/day adds nothing to an
-  agreement measurement.
+- ~~Script-gap hypothesis~~ **Answered (Job 31).** Not supported, at ~50 gold labels per
+  language with length matched and sampling unenriched.
+- ~~Whether the taxonomy needs new intents~~ **Answered (Job 32).** Two added as v3, both
+  measured before being added; models re-labelled so the comparison stays fair.
+- ~~Per-language accuracy from the 125-item set~~ **Abandoned and replaced.** Cells of 5-9
+  items could not support it; the Urdu pass was built to answer it properly.
 
 ## 7. Environment / how to resume locally
 

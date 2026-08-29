@@ -31,6 +31,7 @@ DEFAULT_MODEL = "claude-haiku-4-5"
 
 MIN_REQUEST_INTERVAL = 0.5
 LABEL_EFFORT = "low"  # classification, not reasoning
+MAX_LABEL_TOKENS = 700
 MAX_ATTEMPTS = 5
 BACKOFF_BASE_SECONDS = 2.0
 
@@ -229,7 +230,11 @@ def call_model(
                 output_config["format"] = response_schema
             response = create_fn(
                 model=model,
-                max_tokens=300,
+                # 300 truncated rationales mid-string on longer non-English reviews,
+                # which surfaced as a JSON parse failure rather than a length error.
+                # Urdu script and Roman Urdu also tokenize less efficiently than English,
+                # so an identical budget silently favours English inputs.
+                max_tokens=MAX_LABEL_TOKENS,
                 output_config=output_config,
                 system=[
                     {

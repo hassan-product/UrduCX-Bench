@@ -11,8 +11,8 @@ REGISTRY_PATH = Path("config/taxonomy.yaml")
 def test_load_taxonomy_reads_current_config() -> None:
     taxonomy = load_taxonomy(REGISTRY_PATH)
 
-    assert len(taxonomy.intents) == 24
-    assert len({intent.id for intent in taxonomy.intents}) == 24
+    assert len(taxonomy.intents) == 26
+    assert len({intent.id for intent in taxonomy.intents}) == 26
     assert taxonomy.languages == ["urdu_script", "roman_urdu", "english", "code_switched"]
     assert taxonomy.severities == [
         "financial_loss",

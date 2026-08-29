@@ -81,6 +81,47 @@ App stores serve a recent window, so earlier history cannot be recovered — by 
 Longitudinal claims are unsupported. Forward collection began 2026-08-26
 (`src/collect/refresh_reviews.py`); any time series must be built from that date onward.
 
+### No script gap, measured properly
+
+The project's founding hypothesis was that models handle Urdu-script and Roman-Urdu
+customer complaints worse than English. Three attempts were made to test it, and only the
+third could answer:
+
+- **Phase 2.5** used 20 authored complaints in four scripts. The right instrument, since
+  content is held constant, but at n=20 a single item moved a language by 5 points.
+- **The Phase 3 diagnostic** enriched its sample for model disagreement, which distorts
+  accuracy, and splitting 125 judgements four ways left cells of 5-9 items.
+- **The Urdu pass** (2026-08-30) sampled randomly within each language, matched every
+  stratum to the Urdu-script length profile, and collected human gold labels blind.
+
+Accuracy against human gold, 204 blind judgements, ~50 per language:
+
+| Language | Sonnet 5 | Opus 5 |
+|---|---|---|
+| Urdu script | 62.0% [48.2, 74.1] | 64.0% [50.1, 75.9] |
+| Roman Urdu | 68.6% [55.0, 79.7] | 64.7% [51.0, 76.4] |
+| Code-switched | 63.6% [50.4, 75.1] | 56.4% [43.3, 68.6] |
+| English | 60.4% [46.3, 73.0] | 54.2% [40.3, 67.4] |
+
+English ranks last for both models and Roman Urdu first; the spread is 8-10 points and
+every interval overlaps every other. The hypothesis is not supported. Performance is
+uniform across script at roughly 55-65%, which independently replicates the ~63% measured
+on a separate sample two days earlier.
+
+Two caveats bound this. Length was matched by design; **subject matter was not** - Urdu-script
+reviews skew toward UX complaints and English toward OTP, so a residual content confound
+remains that only a parallel corpus could remove. And 22 judgements made with the model
+answers visible were excluded rather than pooled, leaving a single-protocol result.
+
+### Skipped items must not be scored as errors
+
+Thirteen reviews the annotator skipped were initially counted in the denominator as model
+misses. They were unevenly distributed - 6 Urdu script against 2 English - and suppressed
+Urdu-script accuracy by roughly 6 points, manufacturing a gap in the direction of the
+hypothesis. This is the same defect as Issue 13, where rate-limited API calls were scored
+as wrong answers. Both times the error flattered the prior. An unanswered item is not a
+wrong answer, in either direction.
+
 ### Agreement is not accuracy
 
 Real reviews have no gold labels, so inter-model agreement is reported in place of accuracy
