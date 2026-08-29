@@ -97,6 +97,37 @@ td.rate{font-weight:600}
 .gauge b{position:absolute;top:2px;width:2px;height:12px;background:var(--go);border-radius:1px}
 .t{border-bottom:1px dotted var(--faint);cursor:help}
 .t:focus-visible{outline:2px solid var(--go);outline-offset:2px}
+/* The plain reading comes first and the statistic sits under it, because a number
+   nobody can interpret is not evidence to the person being asked to act on it. */
+.verdict{background:var(--goSoft);border:1px solid var(--go);border-radius:8px;
+  padding:20px 22px;margin-bottom:14px}
+.verdict h2{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--go);
+  margin-bottom:12px}
+.verdict ul{margin:0;padding-left:20px}
+.verdict li{margin-bottom:9px;font-size:15px;line-height:1.55}
+.verdict li:last-child{margin-bottom:0}
+.lede{font-size:14px;line-height:1.6;color:var(--soft);margin:0 0 4px}
+.fine{font:12px ui-monospace,Menlo,monospace;color:var(--faint);margin:6px 0 0}
+.caution{background:var(--warnSoft);border:1px solid var(--warn);border-radius:7px;
+  padding:14px 16px;margin:12px 0 0}
+.caution h3{margin:0 0 6px;font-size:13px;font-weight:600;color:var(--warn)}
+.caution p{margin:0 0 6px;font-size:13.5px;line-height:1.55;color:var(--ink)}
+.caution p:last-child{margin:0}
+.helpbtn{background:none;border:1px solid var(--line);border-radius:50%;width:26px;
+  height:26px;color:var(--soft);cursor:pointer;font:600 13px inherit;padding:0}
+.helpbtn:hover{border-color:var(--go);color:var(--go)}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:8px;
+  padding:20px 22px;margin-bottom:14px}
+.panel h2{margin-bottom:10px}
+.panel dl{margin:0}
+.panel dt{font:600 13px inherit;margin-top:12px}
+.panel dt:first-child{margin-top:0}
+.panel dd{margin:2px 0 0;font-size:13.5px;color:var(--soft);line-height:1.55}
+.dismiss{background:none;border:0;color:var(--faint);cursor:pointer;font:13px inherit;
+  padding:6px 0 0}
+.labelname{font-size:14px}
+.labelid{font:11px ui-monospace,Menlo,monospace;color:var(--faint);margin-left:6px}
+label.opt.sel .labelid{color:rgba(255,255,255,.72)}
 .note{font-size:13px;color:var(--soft);margin:8px 0 0}
 .chip{font:13px inherit;padding:5px 11px;margin:0 7px 7px 0;border:1px solid var(--line);
   border-radius:14px;background:var(--card);color:var(--soft);cursor:pointer}
@@ -113,15 +144,18 @@ h2 .sub{font:400 13px inherit;color:var(--faint);margin-left:8px}
   <span class="spacer"></span>
   <select id="mode" onchange="setPass()" title="which pass to work through"></select>
   <button class="toggle" id="blind" onclick="toggleBlind()"></button>
+  <button class="helpbtn" id="help" onclick="toggleHelp()" title="what the terms mean">?</button>
   <span class="count" id="count"></span>
 </nav>
 <div class="bar"><i id="prog"></i></div>
-<div id="judge"><div id="reveal"></div><div id="app"></div></div>
+<div id="glossary" style="display:none"></div>
+<div id="judge"><div id="intro"></div><div id="reveal"></div><div id="app"></div></div>
 <div id="score" style="display:none"></div>
 </div><script>
 let CFG=null,item=null,back=0,view='judge';
 
-async function boot(){CFG=await (await fetch('./config')).json();paintState(CFG);next();}
+async function boot(){CFG=await (await fetch('./config')).json();paintState(CFG);
+  showIntro();next();}
 
 function paintState(s){
   const m=document.getElementById('mode');
@@ -157,6 +191,37 @@ async function post(url,body){return (await (await fetch(url,{method:'POST',
 function esc(s){const d=document.createElement('div');d.textContent=s==null?'':String(s);
   return d.innerHTML}
 
+// Label ids are written for code; the person reading them is not. The id stays on
+// screen because it is what gets recorded, but it stops being the thing you read first.
+function human(id){const w=String(id).replace(/_/g,' ');
+  return w.charAt(0).toUpperCase()+w.slice(1);}
+
+function toggleHelp(){const g=document.getElementById('glossary');
+  if(g.style.display!=='none'){g.style.display='none';return}
+  g.style.display='';
+  g.innerHTML='<div class="panel"><h2>What the terms mean</h2><dl>'+
+    Object.entries(GLOSS).map(([k,v])=>'<dt>'+esc(GLOSS_NAMES[k]||k)+'</dt><dd>'+
+    esc(v)+'</dd>').join('')+'</dl>'+
+    '<button class="dismiss" onclick="toggleHelp()">close</button></div>';}
+
+function showIntro(){if(localStorage.getItem('adj_intro')==='seen')return;
+  document.getElementById('intro').innerHTML='<div class="panel">'+
+    '<h2>What you are doing here</h2>'+
+    '<p class="lede">You are reading one item at a time and deciding which label it '+
+    'belongs to. Your answers become the yardstick everything else is measured against.</p>'+
+    '<p class="lede"><b>You will not see what the models guessed until after you commit.</b> '+
+    'Being shown two candidate answers and asked which is better is a preference, not an '+
+    'independent judgement — and the whole value of your labels is that they are '+
+    'independent.</p>'+
+    '<p class="lede">Some items are ones the models already agree on. They are mixed in '+
+    'and look identical to the rest. They are there to catch the case where every model '+
+    'is confidently wrong about the same thing.</p>'+
+    '<p class="lede">Open <b>Results</b> at any point to see what your answers say so far.</p>'+
+    '<button class="dismiss" id="hideintro">got it — hide this</button></div>';
+  document.getElementById('hideintro').onclick=()=>{
+    localStorage.setItem('adj_intro','seen');
+    document.getElementById('intro').innerHTML='';};}
+
 async function next(){const r=await (await fetch('./next')).json();
   CFG.blind=r.blind;paintState(r);
   if(!r.item){document.getElementById('app').innerHTML='<div class="card done">'+
@@ -168,7 +233,8 @@ function render(){let o='';
   for(const g in CFG.groups){o+='<div class="grp">'+esc(g.replace(/_/g,' '))+'</div>';
     CFG.groups[g].forEach(id=>{o+='<label class="opt" data-def="'+esc(id)+'">'+
       '<input type="radio" name="label" value="'+esc(id)+'" onchange="pick(this)">'+
-      esc(id)+'</label>';});}
+      '<span class="labelname">'+esc(human(id))+'</span>'+
+      '<span class="labelid">'+esc(id)+'</span></label>';});}
   o+='<div class="grp">no match</div><label class="opt" data-def="">'+
     '<input type="radio" name="label" value="__none__" onchange="pick(this)">'+
     'none of these fit</label><div id="why" style="display:none;margin:6px 0 0 10px">';
@@ -253,6 +319,12 @@ function restore(p){if(!p)return;
   h.textContent='revising — you had chosen: '+(p.label||'skipped');
   document.querySelector('.card').appendChild(h);}
 
+const GLOSS_NAMES={correct:'Got right',rate:'Score',ci:'Could really be',
+ estimate:'How sure',joint:'Every model agreed and all were wrong',
+ kappa:'Agreement between models',excluded:'Excluded from scoring',
+ spread:'Gap between groups',p:'How likely chance alone explains it',
+ mde:'What this test could have seen',blind:'Judging blind',controls:'Control items'};
+
 const GLOSS={
  correct:'How many the model got right, out of the items you judged.',
  rate:'Correct divided by judged, as a percentage.',
@@ -295,55 +367,118 @@ function band(r){
 
 function head(first){return '<colgroup><col class="c-name"><col class="c-num">'+
   '<col class="c-rate"><col class="c-ci"><col class="c-gauge"></colgroup><thead><tr><th>'+
-  esc(first||'measure')+'</th><th class="n">'+t('correct','correct')+
-  '</th><th class="n">'+t('rate','rate')+'</th><th class="n">'+t('ci','95% range')+
-  '</th><th class="gauge-h">'+t('estimate','estimate')+'</th></tr></thead>';}
+  esc(first||'measure')+'</th><th class="n">'+t('correct','got right')+
+  '</th><th class="n">'+t('rate','score')+'</th><th class="n">'+
+  t('ci','could really be')+'</th><th class="gauge-h">'+t('estimate','how sure')+
+  '</th></tr></thead>';}
+
+// Rounded, spoken forms. "About two in three" is what a reader takes away; 65.2% is
+// what they can check.
+function fraction(pct){
+  const near=[[90,'about 9 in 10'],[80,'about 4 in 5'],[75,'about 3 in 4'],
+    [67,'about 2 in 3'],[60,'about 3 in 5'],[50,'about half'],[40,'about 2 in 5'],
+    [33,'about 1 in 3'],[25,'about 1 in 4'],[20,'about 1 in 5'],[10,'about 1 in 10']];
+  let best=near[0];
+  near.forEach(n=>{if(Math.abs(n[0]-pct)<Math.abs(best[0]-pct))best=n;});
+  return best[1];}
+
+function kappaWord(k){if(k==null)return 'unknown';
+  if(k>=0.8)return 'strong';if(k>=0.6)return 'moderate';
+  if(k>=0.4)return 'weak';return 'little better than chance';}
+
+function chanceWord(p){
+  if(p>=0.5)return Math.round(p*10)+' times out of 10';
+  if(p>=0.1)return 'about '+Math.round(p*100)+' times in 100';
+  return 'fewer than '+Math.max(1,Math.round(p*100))+' times in 100';}
 
 async function loadScore(){const el=document.getElementById('score');
   el.innerHTML='<div class="card"><p class="note">computing…</p></div>';
   const by=CFG.by||'';const s=await (await fetch('./score'+(by?'?by='+by:''))).json();
 
-  let h='<div class="card"><h2>Coverage</h2><p class="note">'+s.items+' items · '+
-    s.judged+' judged · <b>'+s.scored+' scored</b>'+
-    (s.excluded?' · '+t('excluded',s.excluded+' excluded'):'')+'</p></div>';
+  if(!s.models.length){el.innerHTML='<div class="card"><h2>Nothing to score yet</h2>'+
+    '<p class="lede">'+s.judged+' items judged. Once your data carries model '+
+    'predictions, this page compares them against your answers.</p></div>';return;}
 
-  if(!s.models.length){h+='<div class="card"><p class="note">No model predictions in '+
-    'this dataset — nothing to score against.</p></div>';el.innerHTML=h;return;}
+  const best=s.models.reduce((a,b)=>b.pct>a.pct?b:a);
+  const worst=s.models.reduce((a,b)=>b.pct<a.pct?b:a);
 
-  h+='<div class="card"><h2>Accuracy against your judgements</h2><table>'+head('model')+'<tbody>';
+  // The plain reading, first and largest. Everything below it is the evidence.
+  let v='<div class="verdict"><h2>What this says</h2><ul>';
+  v+='<li>The best model gets <b>'+fraction(best.pct)+'</b> right — '+
+    esc(best.model)+' at '+best.pct.toFixed(0)+'%.</li>';
+  if(s.models.length>1&&best.low>worst.high){
+    v+='<li>'+esc(best.model)+' is <b>genuinely ahead</b> of '+esc(worst.model)+
+      '; the gap is bigger than the uncertainty.</li>';}
+  else if(s.models.length>1){
+    v+='<li>The models score differently, but <b>not by enough to call a winner</b> — '+
+      'their plausible ranges overlap.</li>';}
+  if(s.joint){v+='<li>When every model agreed with the others, they were still '+
+    '<b>all wrong '+fraction(s.joint.pct)+'</b> of those times. Agreement is not proof.</li>';}
+  if(s.groups.length){const g=s.groups[0];
+    v+='<li>'+(g.significant?'One group is handled <b>measurably worse</b> than the others.'
+      :'<b>No group is handled meaningfully worse</b> than another'+
+      (g.mde>g.spread?', though this test could not have spotted a small difference.':'.'))+
+      '</li>';}
+  v+='<li>Based on <b>'+s.scored+'</b> items you judged by hand'+
+    (s.excluded?', with '+s.excluded+' set aside':'')+'.</li></ul></div>';
+
+  let h=v;
+
+  h+='<div class="card"><h2>How often each model was right</h2>'+
+    '<p class="lede">Out of the '+s.scored+' items you judged. The "could really be" '+
+    'column is the range the true figure plausibly sits in — we tested a sample, not '+
+    'everything.</p><table>'+head('model')+'<tbody>';
   s.models.forEach(m=>{h+='<tr><td class="name">'+esc(m.model)+'</td>'+band(m)+'</tr>';});
-  h+='</tbody></table></div><p class="note">Bars that overlap are not reliably '+
-    'different — read the range, not the point.</p></div>';
+  h+='</tbody></table><p class="note">Two rows whose bars overlap are not reliably '+
+    'different, however far apart the scores look.</p></div>';
 
-  if(s.joint){h+='<div class="card"><h2>'+t('joint','Every model agreed — and was wrong')+
-    '</h2><table>'+head('')+'<tbody><tr>'+
-    '<td class="name">all agreed, all wrong</td>'+band(s.joint)+'</tr></tbody></table>'+
-    '<p class="note">Agreement between models cannot surface this. Only your labels can.'+
-    '</p></div>';}
+  if(s.joint){h+='<div class="card"><h2>When every model agreed — were they right?</h2>'+
+    '<p class="lede">These are the items where the models all gave the same answer. '+
+    'Teams often treat that as a safe signal. On '+fraction(s.joint.pct)+' of them, '+
+    'they were all wrong together.</p><table>'+head('')+'<tbody><tr>'+
+    '<td class="name">agreed, but wrong</td>'+band(s.joint)+'</tr></tbody></table>'+
+    '<p class="note">Models agreeing with each other can never reveal this. Only your '+
+    'labels can.</p></div>';}
 
-  if(s.agreement){h+='<div class="card"><h2>Do the models agree with each other?'+
-    '<span class="sub">'+esc(s.agreement.pair)+'</span></h2><table>'+
-    head('')+'<tbody><tr><td class="name">same answer</td>'+band(s.agreement)+
-    '</tr></tbody></table></div><p class="note">'+t('kappa',"Cohen's kappa")+' '+
-    s.agreement.kappa+'</p></div>';}
+  if(s.agreement){const k=s.agreement.kappa;
+    h+='<div class="card"><h2>Do the models agree with each other?</h2>'+
+      '<p class="lede">'+esc(s.agreement.pair)+' give the same answer '+
+      s.agreement.pct.toFixed(0)+'% of the time. Allowing for agreements that would '+
+      'happen by luck alone, that is <b>'+kappaWord(k)+'</b>'+
+      (k!==null&&k<0.6?' — they often reach different conclusions on the same item.':'.')+
+      '</p><table>'+head('')+'<tbody><tr><td class="name">same answer</td>'+
+      band(s.agreement)+'</tr></tbody></table>'+
+      '<p class="fine">'+t('kappa',"Cohen's kappa")+' '+k+'</p></div>';}
 
   if(s.fields.length){h+='<div class="card"><h2>Break the numbers down</h2>'+
-    '<p class="note">Split accuracy by any field in your data.</p><p>'+
+    '<p class="lede">Split the score by anything recorded against your items — to see '+
+    'whether one kind of item is handled worse than the rest.</p><p>'+
     s.fields.map(f=>'<button class="chip'+(f===by?' on':'')+'" data-field="'+
-      esc(f)+'">'+esc(f)+'</button>').join('')+
+      esc(f)+'">'+esc(human(f))+'</button>').join('')+
     (by?'<button class="chip" data-field="">clear</button>':'')+'</p></div>';}
 
   s.groups.forEach(g=>{
-    h+='<div class="card"><h2>'+esc(g.model)+'<span class="sub">by '+esc(s.by)+
-      '</span></h2><table>'+head(s.by)+'<tbody>';
-    g.cells.forEach(c=>{h+='<tr><td class="name">'+esc(c.group)+'</td>'+band(c)+'</tr>';});
-    h+='</tbody></table></div><p class="note">'+t('spread','spread')+' '+g.spread+
-      ' pts · '+t('p','p')+' = '+g.p+' — '+
-      (g.significant?'<b>a real difference</b>':'no significant difference')+'</p>'+
-      '<p class="note">'+t('mde','This design could detect')+' '+g.mde+
-      ' pts at 80% power.'+((!g.significant&&g.needed)?' A gap this size would need n='+
-      g.needed+' per group to confirm — read the null as a ceiling, not a zero.':'')+
-      '</p></div>';});
+    h+='<div class="card"><h2>'+esc(g.model)+'<span class="sub">split by '+
+      esc(human(s.by))+'</span></h2>'+
+      '<p class="lede">'+(g.significant
+        ? 'One group really is handled worse. A gap this large turns up by chance '+
+          chanceWord(g.p)+', so it is unlikely to be luck.'
+        : 'No real difference. The '+g.spread.toFixed(0)+'-point gap you can see is the '+
+          'kind chance produces on its own — shuffling the groups at random gives a gap '+
+          'this big '+chanceWord(g.p)+'.')+'</p>'+
+      '<table>'+head(human(s.by))+'<tbody>';
+    g.cells.forEach(c=>{h+='<tr><td class="name">'+esc(human(c.group))+'</td>'+
+      band(c)+'</tr>';});
+    h+='</tbody></table>';
+    if(!g.significant&&g.mde>g.spread){
+      h+='<div class="caution"><h3>What this test could not have seen</h3>'+
+        '<p>It would reliably have caught a gap bigger than <b>'+g.mde.toFixed(0)+
+        ' points</b>. You saw '+g.spread.toFixed(0)+'. So a smaller real difference '+
+        'could still be hiding — read this as a ceiling, not proof of zero.</p>'+
+        (g.needed?'<p>To be sure about a gap this size you would need roughly <b>'+
+          g.needed+' items per group</b>.</p>':'')+'</div>';}
+    h+='<p class="fine">spread '+g.spread+' pts · '+t('p','p')+' = '+g.p+' · '+
+      t('mde','detectable')+' '+g.mde+' pts</p></div>';});
 
   el.innerHTML=h;}
 

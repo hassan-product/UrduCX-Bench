@@ -867,6 +867,51 @@ replicating the ~63% measured on a separate sample two days earlier.
 
 - Verification: `ruff check .` clean, 161 tests passing.
 
+### Phase 5 — the harness becomes a tool anyone can run (2026-08-30/09-01)
+
+The tooling that produced the gold labels lived in the ignored `spike/` directory,
+hard-coded to one dataset, untested, and runnable only by its author. It is the part of
+this work most likely to be useful elsewhere, so it was lifted out.
+
+**Job 33 — extraction.** `src/adjudicate/` — nine modules, domain-agnostic: a JSONL of
+items, a YAML label set, a local server, and scoring. Validated by reproducing the study
+exactly: same per-language accuracy for three models, same p-values, same 28-point
+detectable-effect floor. A generic tool that gets different numbers from the specific one
+is broken, so that check was the point of the exercise.
+
+`src/eval/` was left alone. The project plan reserves it for the model-running harness
+(`adapters/`, `prompts/`, `run_eval.py`, `score.py`), and an early draft of this work had
+already overwritten its `__init__.py` before the collision was noticed.
+
+**Job 34 — one application instead of three commands.** Pass selection and the blindness
+setting became controls in the interface rather than flags typed at launch, and scoring
+became a view rather than a separate command. Blindness in particular needed to be visible
+state: a pass that quietly stops being blind still writes a full file of judgements.
+
+**Job 35 — a null result reports its own power.** Subgroup analysis prints the minimum
+detectable effect beside the p-value. "No difference" and "this could not have found one"
+produce identical tables, and the distinction is the whole claim. On this study: a gap
+larger than ~28 points would have shown up and did not; a smaller one is not excluded.
+
+**Job 36 — `--demo`.** Real evaluation data is customer text and does not travel, so the
+tool now generates a synthetic dataset and opens on it. The fake models disagree often
+enough for the controls pass to mean something, and one group carries a real deficit so the
+subgroup test has something to find, while the sample stays small enough that the power
+line still says it cannot be certain.
+
+**Job 37 — written for the reader, not the author.** Results now lead with a plain-English
+verdict and demote the statistics beneath it. Column headers became *got right*, *score*,
+*could really be*, *how sure*; the p-value became "chance produces a gap this big 7 times
+out of 10"; the detectable-effect floor became a bordered caution panel; kappa gained a
+word before its number. Every technical term carries a tooltip, and a glossary panel lists
+them all at once. Label ids are shown in human form with the id kept in small type beside
+them, because the id is what gets recorded but not what should be read first.
+
+The reasoning is the same one that runs through the study: a figure nobody can interpret
+is not evidence to the person being asked to act on it.
+
+- Verification: `ruff check .` clean, 191 tests passing (161 before this phase).
+
 ---
 
 ## 4. Key decisions and their reasoning
@@ -1082,6 +1127,33 @@ replicating the ~63% measured on a separate sample two days earlier.
   toward OTP - and no real-corpus design can, since language and subject matter are
   genuinely correlated in the population. Only a parallel corpus separates them, which is
   what Phase 2.5 was and why that design was right despite its sample size.
+
+36. **The adjudication tooling was extracted rather than left in `spike/` (2026-08-31).**
+  It is the reusable half of the project: the study's findings are specific to Pakistani
+  complaints, but blind adjudication with controls, exclusion of skipped items, reweighting
+  for enriched samples, and a power statement beside every null are not. Leaving it in an
+  ignored directory meant it could not be shown, tested, or reused.
+
+37. **The protocol is enforced in code, not documented in a README (2026-08-31).**
+  Predictions are absent from the item payload rather than hidden in the interface;
+  controls are shuffled in and indistinguishable; judgements carry the blindness regime
+  and label-set version they were made under. Each of these, left to discipline, stops
+  holding without producing any visible symptom - a pass that quietly stops being blind
+  still writes a full file of judgements, and two protocols reported as one number is not
+  a number.
+
+38. **A null result carries its power or it is not reported (2026-09-01).**
+  The script-gap finding was stated as "disproven" for three days before the minimum
+  detectable effect was computed. At ~50 items per language the design could only have
+  caught a gap of ~28 points; the observed spread was 11. The claim that survives is a
+  bound - no large gap exists, and every point estimate runs opposite to the hypothesis -
+  not a zero. The tool now prints this automatically so the omission cannot repeat.
+
+39. **The interface is written for a reader who did not build it (2026-09-01).**
+  `p = 0.711` and `kappa 0.576` are precise and useless to the person deciding whether to
+  ship. Results now lead with the plain reading and keep every statistic beneath it, on the
+  same principle that governs the paper: the finding is what someone can act on, and a
+  number they cannot interpret is not a finding.
 
 ---
 
@@ -1327,6 +1399,38 @@ replicating the ~63% measured on a separate sample two days earlier.
   an HTML attribute at all - only an id is passed and the text is looked up in JS, so the
   class of bug cannot recur. `node --check` on the extracted script is now run before
   restarting the server; it identified the exact line immediately.
+
+### Issue 25 — Inline event handlers broke the page twice (Phase 5)
+- **What happened:** generated markup carried `onclick="fn('+id+')"`. The argument sits
+  inside a quoted attribute, inside a quoted JS string, inside a Python triple-quoted
+  string, where `\'` collapses to `'` before reaching the browser. Two adjacent string
+  literals with no operator is a hard parse error, so the whole `<script>` failed and the
+  page rendered a header and nothing else.
+- **Why it recurred:** the first fix corrected the escaping on one line and recorded that
+  the bug could not return. It returned three days later on a different line, because the
+  escaping was the symptom and four levels of quoting was the cause.
+- **Fix:** inline handlers taking string arguments are gone. Markup carries `data-*`
+  attributes and two delegated listeners read them, so there is nothing left to escape.
+  `node --check` now runs against the extracted script before every restart, and it
+  identified the exact line both times in under a second.
+
+### Issue 26 — `output_config.effort` is rejected by pre-4.6 models (Phase 5)
+- **What happened:** every Claude Haiku 4.5 call returned `400 - This model does not
+  support the effort parameter`, so the model was silently absent from a comparison built
+  to include it.
+- **Why it mattered:** the parameter was added for frontier models and tested only there.
+  Haiku-class models are what production deploys for high-volume work, so the defect was
+  invisible in testing and total under the conditions that matter.
+- **Fix:** `supports_effort()` gates the parameter by model, with tests asserting it is
+  sent to Opus and withheld from Haiku.
+
+### Issue 27 — A table's min-width scrolled away its own labels (Phase 5)
+- **What happened:** results tables carried `min-width: 560px` inside a scrolling
+  container. On a narrower viewport the container scrolled horizontally and the name
+  column left the screen, leaving columns of numbers identifying nothing.
+- **Fix:** min-width removed; below 760px the estimate bar is dropped instead, being a
+  second reading of numbers already present in the row. Tables with no natural first
+  column gained a header rather than a blank cell.
 
 ---
 
