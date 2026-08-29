@@ -32,6 +32,17 @@ DEFAULT_MODEL = "claude-haiku-4-5"
 MIN_REQUEST_INTERVAL = 0.5
 LABEL_EFFORT = "low"  # classification, not reasoning
 MAX_LABEL_TOKENS = 700
+
+# `effort` is rejected outright by pre-4.6 models: Haiku 4.5 returns
+# "This model does not support the effort parameter" as a 400. Sending it
+# unconditionally made the whole roster silently un-runnable for cheaper models -
+# which are the ones actually deployed for high-volume work.
+MODELS_WITHOUT_EFFORT = frozenset({"claude-haiku-4-5", "claude-sonnet-4-5"})
+
+
+def supports_effort(model: str) -> bool:
+    """Whether this model accepts output_config.effort."""
+    return model not in MODELS_WITHOUT_EFFORT
 MAX_ATTEMPTS = 5
 BACKOFF_BASE_SECONDS = 2.0
 
@@ -225,7 +236,9 @@ def call_model(
     last_error: Exception | None = None
     for attempt in range(MAX_ATTEMPTS):
         try:
-            output_config: dict[str, Any] = {"effort": LABEL_EFFORT}
+            output_config: dict[str, Any] = (
+                {"effort": LABEL_EFFORT} if supports_effort(model) else {}
+            )
             if response_schema is not None:
                 output_config["format"] = response_schema
             response = create_fn(

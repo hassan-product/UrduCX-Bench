@@ -1,0 +1,452 @@
+<title>The 61% Problem</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+
+<style>
+  :root {
+    --ground: #F6F8FA;
+    --panel: #FFFFFF;
+    --ink: #11161D;
+    --ink-soft: #47525F;
+    --ink-faint: #6E7B89;
+    --rule: #DCE3EA;
+    --measured: #1B6558;
+    --measured-soft: #E4EFEC;
+    --believed: #9C4436;
+    --believed-soft: #F6E9E6;
+    --serif: "Newsreader", Georgia, serif;
+    --sans: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #0D1117;
+      --panel: #151B23;
+      --ink: #E8EDF3;
+      --ink-soft: #A9B4C0;
+      --ink-faint: #7C8794;
+      --rule: #262E38;
+      --measured: #62B8A5;
+      --measured-soft: #16241F;
+      --believed: #D98878;
+      --believed-soft: #261915;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground: #0D1117;
+    --panel: #151B23;
+    --ink: #E8EDF3;
+    --ink-soft: #A9B4C0;
+    --ink-faint: #7C8794;
+    --rule: #262E38;
+    --measured: #62B8A5;
+    --measured-soft: #16241F;
+    --believed: #D98878;
+    --believed-soft: #261915;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 17px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 47rem;
+    margin: 0 auto;
+    padding: 4rem 1.5rem 6rem;
+  }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin: 0 0 1.25rem;
+  }
+
+  h1 {
+    font-family: var(--serif);
+    font-size: clamp(2.4rem, 6vw, 3.4rem);
+    font-weight: 500;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+    margin: 0 0 1.25rem;
+  }
+
+  .standfirst {
+    font-family: var(--serif);
+    font-size: 1.3rem;
+    line-height: 1.5;
+    color: var(--ink-soft);
+    text-wrap: balance;
+    margin: 0 0 2.5rem;
+  }
+
+  .basis {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 2.5rem;
+    padding: 1.25rem 0;
+    border-top: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
+    margin-bottom: 3.5rem;
+  }
+  .basis div { padding: 0.35rem 0; }
+  .basis dt {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin: 0 0 0.15rem;
+  }
+  .basis dd {
+    margin: 0;
+    font-family: var(--mono);
+    font-size: 1.05rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  h2 {
+    font-family: var(--serif);
+    font-size: 1.75rem;
+    font-weight: 500;
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+    margin: 3.5rem 0 1rem;
+  }
+
+  h3 {
+    font-family: var(--sans);
+    font-size: 1.02rem;
+    font-weight: 600;
+    margin: 2rem 0 0.5rem;
+  }
+
+  p { margin: 0 0 1.1rem; }
+  strong { font-weight: 600; }
+
+  .compare {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: var(--rule);
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    overflow: hidden;
+    margin: 2rem 0;
+  }
+  @media (max-width: 34rem) { .compare { grid-template-columns: 1fr; } }
+
+  .compare > div { background: var(--panel); padding: 1.75rem 1.5rem; }
+  .compare .label {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin: 0 0 0.75rem;
+  }
+  .compare .num {
+    font-family: var(--serif);
+    font-size: 3.6rem;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    margin: 0 0 0.6rem;
+  }
+  .compare .note {
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: var(--ink-soft);
+    margin: 0;
+  }
+  .believed .label { color: var(--believed); }
+  .believed .num { color: var(--believed); }
+  .measured .label { color: var(--measured); }
+  .measured .num { color: var(--measured); }
+
+  .finding {
+    border-left: 2px solid var(--rule);
+    padding: 0.15rem 0 0.15rem 1.4rem;
+    margin: 2rem 0;
+  }
+  .finding .stat {
+    font-family: var(--serif);
+    font-size: 2.1rem;
+    line-height: 1.15;
+    font-variant-numeric: tabular-nums;
+    color: var(--measured);
+    display: block;
+    margin-bottom: 0.3rem;
+  }
+  .finding p { margin: 0 0 0.6rem; }
+  .finding p:last-child { margin-bottom: 0; }
+  .finding .caveat {
+    font-size: 0.88rem;
+    color: var(--ink-faint);
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.95rem;
+    margin: 1.5rem 0;
+  }
+  .scroll { overflow-x: auto; }
+  th, td {
+    text-align: left;
+    padding: 0.7rem 0.9rem 0.7rem 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  th {
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    font-weight: 400;
+  }
+  td.n {
+    font-family: var(--mono);
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+    padding-right: 0;
+  }
+
+  .honest {
+    background: var(--panel);
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    padding: 1.75rem 1.75rem 1.5rem;
+    margin: 2rem 0;
+  }
+  .honest h2 { margin-top: 0; }
+  .honest ul { margin: 0; padding-left: 1.1rem; }
+  .honest li { margin-bottom: 0.7rem; }
+  .honest li:last-child { margin-bottom: 0; }
+
+  footer {
+    margin-top: 4rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--rule);
+    font-size: 0.9rem;
+    color: var(--ink-faint);
+  }
+  footer p { margin: 0 0 0.5rem; }
+
+  a { color: var(--measured); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+  a:focus-visible { outline: 2px solid var(--measured); outline-offset: 3px; border-radius: 2px; }
+</style>
+
+<div class="wrap">
+
+  <p class="eyebrow">Independent study · Hassan Chaudry · Pakistan, August 2026</p>
+  <h1>The 61% Problem</h1>
+  <p class="standfirst">
+    I measured how accurately AI reads real Pakistani customer complaints.
+    It is right about 61% of the time — not the 95% that standard testing reports.
+  </p>
+
+  <dl class="basis">
+    <div><dt>Reviews collected</dt><dd>54,519</dd></div>
+    <div><dt>Apps</dt><dd>17</dd></div>
+    <div><dt>Read &amp; labelled by hand</dt><dd>365</dd></div>
+    <div><dt>Total cost</dt><dd>$20</dd></div>
+  </dl>
+
+  <h2>What I did</h2>
+  <p>
+    I collected every public review from Pakistan's main mobile wallets and telecom apps —
+    JazzCash, Easypaisa, SadaPay, NayaPay, Zindigi and others. Real complaints, written by
+    real customers, in Urdu, Roman Urdu, English, and the mix of all three that people
+    actually type.
+  </p>
+  <p>
+    I then asked leading AI models to sort those complaints into categories — the sort of
+    thing a bank does automatically before routing a ticket to the right team. Finally, I
+    read 365 of those complaints myself and decided the correct answer for each one, without
+    ever seeing what the AI had said.
+  </p>
+  <p>
+    That last step is the one almost nobody does, and it is the only step that tells you
+    whether the AI is right.
+  </p>
+
+  <h2>The main finding</h2>
+
+  <div class="compare">
+    <div class="believed">
+      <p class="label">Tested the usual way</p>
+      <p class="num">95%</p>
+      <p class="note">
+        Accuracy when the test questions were written in-house — clean, clear, one problem
+        each. This is how most teams check their systems.
+      </p>
+    </div>
+    <div class="measured">
+      <p class="label">Tested on real complaints</p>
+      <p class="num">61%</p>
+      <p class="note">
+        Accuracy on genuine customer reviews from the same apps. Same AI, same categories,
+        same instructions. Only the questions changed.
+      </p>
+    </div>
+  </div>
+
+  <p>
+    <strong>A 34-point gap.</strong> Writing your own test questions is like a teacher sitting
+    their own exam — you unconsciously write the questions you know how to answer. Real
+    customers write "bakwas app", ramble about three problems at once, switch scripts
+    mid-sentence, and end with fifteen question marks.
+  </p>
+  <p>
+    If your AI is graded on questions your team wrote, you should expect the real number to
+    be roughly thirty points lower.
+  </p>
+
+  <h2>Three more things worth knowing</h2>
+
+  <div class="finding">
+    <span class="stat">31%</span>
+    <p>
+      <strong>When two different AI models agree with each other, they are still both wrong
+      about a third of the time.</strong>
+    </p>
+    <p>
+      Many teams use this as a shortcut: run two models, and where they agree, trust the
+      answer. On real Pakistani complaints that shortcut fails roughly one time in three —
+      and it fails invisibly, because agreement looks like confidence.
+    </p>
+  </div>
+
+  <div class="finding">
+    <span class="stat">17 : 1</span>
+    <p>
+      <strong>Keyword rules miss Urdu-script complaints seventeen times more often than
+      English ones.</strong>
+    </p>
+    <p>
+      I built a keyword search to find complaints where a customer had lost money. It missed
+      17 Urdu-script cases for every 1 English case it missed — because the keyword list was
+      written in English letters. Any rule built this way is close to blind to customers
+      writing in Urdu.
+    </p>
+  </div>
+
+  <div class="finding">
+    <span class="stat">0 of 54,519</span>
+    <p>
+      <strong>Some kinds of fraud never appear in public reviews at all.</strong>
+    </p>
+    <p>
+      Scams where a customer is deceived by another person — a forged payment screenshot
+      shown to a shopkeeper — returned zero examples across the entire corpus. The app worked
+      correctly, so there is nothing to complain to the app about. That victim goes to the
+      police. Any system trained only on public feedback is blind to this entire category.
+    </p>
+  </div>
+
+  <h2>What Pakistani customers actually complain about</h2>
+  <p>
+    From a random sample of 500 one-to-three star reviews, split evenly between the two
+    largest wallets:
+  </p>
+
+  <div class="scroll">
+    <table>
+      <thead>
+        <tr>
+          <th>Complaint type</th>
+          <th class="n">JazzCash</th>
+          <th class="n">Easypaisa</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>The app is confusing or missing features</td><td class="n">46.5%</td><td class="n">31.1%</td></tr>
+        <tr><td>The service was down</td><td class="n">2.3%</td><td class="n">16.0%</td></tr>
+        <tr><td>Cannot log in</td><td class="n">16.1%</td><td class="n">19.2%</td></tr>
+        <tr><td>Money left the account and never arrived</td><td class="n">6.5%</td><td class="n">6.8%</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>
+    <strong>These are different problems with different owners.</strong> JazzCash's unhappy
+    customers are mostly describing a product they find hard to use. Easypaisa's are mostly
+    describing a service that was unavailable. One is a design problem; the other is
+    infrastructure.
+  </p>
+  <p>
+    Money-loss complaints are near-identical between them, and the difference is inside the
+    margin of error. Neither wallet is meaningfully worse at losing people's money.
+  </p>
+
+  <h2>Why this matters commercially</h2>
+  <p>
+    Pakistan's central bank requires every bank and wallet to run a Complaint Management Unit,
+    and puts a <strong>30 working-day limit on resolving fraud complaints</strong>. At that
+    volume, no one is sorting complaints by hand.
+  </p>
+  <p>
+    If the system doing the sorting is 61% accurate rather than 95%, roughly four complaints
+    in ten land in the wrong queue. Some of those are fraud cases, sitting in the wrong place
+    while a regulatory clock runs down — and nobody is looking, because the dashboard says
+    95%.
+  </p>
+
+  <div class="honest">
+    <h2>What this study cannot tell you</h2>
+    <ul>
+      <li>
+        <strong>One person decided the correct answers.</strong> There was no second reader,
+        so "61% accurate" is more precisely "61% agreement with one experienced reader."
+      </li>
+      <li>
+        <strong>I could not detect small differences between languages.</strong> The study
+        would reliably have caught a gap of 28 percentage points or more between Urdu and
+        English. It found around 11 — statistically indistinguishable from chance. A smaller
+        real gap could exist.
+      </li>
+      <li>
+        <strong>The corpus is 88% English.</strong> That is what Pakistanis actually write in
+        app stores, but it means the Urdu findings rest on a smaller base.
+      </li>
+      <li>
+        <strong>Public reviews are not customer service tickets.</strong> They capture the
+        people who gave up and complained publicly, which is a different population from the
+        people who filed a formal complaint.
+      </li>
+    </ul>
+  </div>
+
+  <p>
+    Every one of those limits is stated because it is real. A study that reports only its
+    strengths should be read as marketing.
+  </p>
+
+  <footer>
+    <p>
+      <strong>Hassan Chaudry</strong> — independent research, August 2026. 54,519 reviews
+      across 17 Pakistani financial and telecom apps; 365 complaints read and categorised by
+      hand under a protocol designed to stop me being influenced by the AI's answers.
+    </p>
+    <p>
+      Full methodology, data and code available on request. No proprietary or operator data
+      was used; all reviews are public and were stripped of identifying details before
+      analysis.
+    </p>
+  </footer>
+
+</div>

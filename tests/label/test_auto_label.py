@@ -20,6 +20,7 @@ from src.label.auto_label import (
     label_records,
     load_cached_label,
     parse_label_response,
+    supports_effort,
     write_cached_label,
 )
 from src.label.taxonomy import Intent, Taxonomy
@@ -345,3 +346,30 @@ def test_confidence_outside_the_unit_interval_is_rejected() -> None:
     payload = json.dumps({**VALID_LABEL, "confidence": 1.4})
     with pytest.raises(ValueError, match="outside"):
         parse_label_response(payload)
+
+
+def test_effort_is_withheld_from_models_that_reject_it() -> None:
+    assert supports_effort("claude-opus-5")
+    assert supports_effort("claude-sonnet-5")
+    assert not supports_effort("claude-haiku-4-5")
+
+
+def test_call_model_omits_effort_for_haiku() -> None:
+    seen: dict[str, object] = {}
+
+    def create_fn(**kwargs: object) -> _FakeResponse:
+        seen.update(kwargs)
+        return _FakeResponse(VALID_LABEL_JSON)
+
+    for model, expected in (("claude-haiku-4-5", False), ("claude-opus-5", True)):
+        seen.clear()
+        call_model(
+            create_fn,
+            model=model,
+            system_prompt="prompt",
+            review_text="text",
+            response_schema={"type": "json_schema", "schema": {}},
+        )
+        config = seen["output_config"]
+        assert isinstance(config, dict)
+        assert ("effort" in config) is expected, model
