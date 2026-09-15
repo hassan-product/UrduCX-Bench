@@ -11,6 +11,22 @@ repos:
       - id: check-added-large-files
       - id: check-merge-conflict
       - id: check-yaml
+      - id: detect-private-key
       - id: end-of-file-fixer
       - id: mixed-line-ending
       - id: trailing-whitespace
+  - repo: local
+    hooks:
+      - id: env-example-must-be-empty
+        name: .env.example holds no values
+        description: The template documents variable names only. A value here is a key about to be published.
+        entry: >-
+          bash -c 'bad=$(grep -nE "^[A-Za-z_]+=.+" .env.example);
+          if [ -n "$bad" ]; then
+            echo "Refusing to commit: .env.example has a value on these lines. Real keys belong in .env, which is git-ignored.";
+            echo "$bad" | sed "s/=.*$/=<redacted>/";
+            exit 1;
+          fi'
+        language: system
+        files: ^\.env\.example$
+        pass_filenames: false
