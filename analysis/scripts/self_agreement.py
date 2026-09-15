@@ -66,8 +66,7 @@ def main() -> None:
         return
 
     meta = {
-        json.loads(line)["review_id"]: json.loads(line)
-        for line in SAMPLE.open(encoding="utf-8")
+        json.loads(line)["review_id"]: json.loads(line) for line in SAMPLE.open(encoding="utf-8")
     }
 
     pairs = [(first[r]["human_intent"], second[r]["human_intent"]) for r in shared]
@@ -75,8 +74,10 @@ def main() -> None:
     lo, hi = wilson(same, len(pairs))
 
     print(f"Blind re-check: {len(shared)} reviews judged twice\n")
-    print(f"  same answer both times   {same}/{len(pairs)} = {same / len(pairs) * 100:.1f}%"
-          f"  [{lo * 100:.1f}, {hi * 100:.1f}]")
+    print(
+        f"  same answer both times   {same}/{len(pairs)} = {same / len(pairs) * 100:.1f}%"
+        f"  [{lo * 100:.1f}, {hi * 100:.1f}]"
+    )
     print(f"  Cohen's kappa            {kappa(pairs):.3f}")
 
     print("\n  Reading: >0.80 near-perfect, 0.61-0.80 substantial, 0.41-0.60 moderate.")
@@ -91,8 +92,7 @@ def main() -> None:
             print(f"      {text}")
 
         pairs_c = Counter(
-            tuple(sorted((first[r]["human_intent"], second[r]["human_intent"])))
-            for r in changed
+            tuple(sorted((first[r]["human_intent"], second[r]["human_intent"]))) for r in changed
         )
         repeated = [(p, c) for p, c in pairs_c.most_common() if c > 1]
         if repeated:

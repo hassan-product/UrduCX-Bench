@@ -204,9 +204,7 @@ def main() -> None:
     """Collect approved Apple listings sequentially under one global request pacer."""
     args = parse_args()
     max_pages = min(max(args.max_pages_per_listing, 1), APPLE_MAX_PAGES)
-    listings = load_apple_listings(
-        args.registry, set(args.products) if args.products else None
-    )
+    listings = load_apple_listings(args.registry, set(args.products) if args.products else None)
     pacer = RequestPacer(args.request_interval)
     for listing in listings:
         collect_listing(

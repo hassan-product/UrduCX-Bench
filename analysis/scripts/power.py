@@ -65,8 +65,7 @@ def minimum_detectable_effect(baseline: float, n_per_group: int) -> float:
 def main() -> None:
     """Report the permutation test and the detectable-effect floor for each model."""
     work = {
-        json.loads(line)["review_id"]: json.loads(line)
-        for line in WORKLIST.open(encoding="utf-8")
+        json.loads(line)["review_id"]: json.loads(line) for line in WORKLIST.open(encoding="utf-8")
     }
     gold = {}
     for line in GOLD.open(encoding="utf-8"):
@@ -117,17 +116,21 @@ def main() -> None:
 
     mde = minimum_detectable_effect(baseline, smallest)
     print(f"  baseline accuracy {baseline * 100:.1f}%, smallest language cell n={smallest}")
-    print(f"  minimum detectable effect at {int(TARGET_POWER * 100)}% power: "
-          f"{mde * 100:.1f} percentage points\n")
+    print(
+        f"  minimum detectable effect at {int(TARGET_POWER * 100)}% power: "
+        f"{mde * 100:.1f} percentage points\n"
+    )
 
     print(f"  So the honest reading is: a script gap larger than about {mde * 100:.0f} points")
-    print( "  would very likely have shown up, and did not. A gap smaller than that could")
-    print( "  exist and this design would probably have missed it. The observed spreads")
-    print( "  sit well inside that floor, so the null is a bound, not a proof of zero.\n")
+    print("  would very likely have shown up, and did not. A gap smaller than that could")
+    print("  exist and this design would probably have missed it. The observed spreads")
+    print("  sit well inside that floor, so the null is a bound, not a proof of zero.\n")
 
     for n in (50, 100, 200, 400):
-        print(f"    n={n:3d} per language -> detectable gap "
-              f"{minimum_detectable_effect(correct, n) * 100:4.1f} pts")
+        print(
+            f"    n={n:3d} per language -> detectable gap "
+            f"{minimum_detectable_effect(correct, n) * 100:4.1f} pts"
+        )
 
 
 if __name__ == "__main__":

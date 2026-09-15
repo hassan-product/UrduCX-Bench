@@ -91,9 +91,7 @@ def _rows(path: Path) -> list[dict[str, Any]]:
     """Read a JSONL file, ignoring blank lines."""
     if not path.exists():
         return []
-    return [
-        json.loads(line) for line in path.open(encoding="utf-8") if line.strip()
-    ]
+    return [json.loads(line) for line in path.open(encoding="utf-8") if line.strip()]
 
 
 def load_items(path: Path) -> list[Item]:
@@ -104,8 +102,16 @@ def load_items(path: Path) -> list[Item]:
         text = row.get("text") or row.get("text_scrubbed") or row.get("text_clean") or ""
         if not identifier:
             raise ValueError(f"item is missing an id: {row}")
-        known = {"id", "review_id", "text", "text_scrubbed", "text_clean", "predictions",
-                 "models", "meta"}
+        known = {
+            "id",
+            "review_id",
+            "text",
+            "text_scrubbed",
+            "text_clean",
+            "predictions",
+            "models",
+            "meta",
+        }
         meta = row.get("meta") or {k: v for k, v in row.items() if k not in known}
         raw = row.get("predictions") or row.get("models") or {}
         predictions = {
@@ -150,9 +156,6 @@ def write_judgements(path: Path, judgements: dict[str, Judgement]) -> None:
     """
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(
-        "".join(
-            json.dumps(j.to_dict(), ensure_ascii=False) + "\n"
-            for j in judgements.values()
-        ),
+        "".join(json.dumps(j.to_dict(), ensure_ascii=False) + "\n" for j in judgements.values()),
         encoding="utf-8",
     )

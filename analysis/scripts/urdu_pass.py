@@ -77,9 +77,7 @@ def draw(per_language: int = PER_LANGUAGE) -> list[dict[str, Any]]:
     """Draw a length-matched, unenriched sample for each language form."""
     rng = random.Random(SEED)
     judged = {
-        json.loads(line)["review_id"]
-        for line in JUDGED.open(encoding="utf-8")
-        if line.strip()
+        json.loads(line)["review_id"] for line in JUDGED.open(encoding="utf-8") if line.strip()
     }
 
     pools: dict[str, dict[str, list[dict]]] = defaultdict(lambda: defaultdict(list))
@@ -97,9 +95,7 @@ def draw(per_language: int = PER_LANGUAGE) -> list[dict[str, Any]]:
     urdu = pools["urdu_script"]
     target_n = min(per_language, sum(len(v) for v in urdu.values()))
     total_urdu = sum(len(v) for v in urdu.values())
-    shape = {
-        bucket: round(len(rows) / total_urdu * target_n) for bucket, rows in urdu.items()
-    }
+    shape = {bucket: round(len(rows) / total_urdu * target_n) for bucket, rows in urdu.items()}
 
     drawn: list[dict[str, Any]] = []
     for language in LANGUAGES:
@@ -120,9 +116,7 @@ def main() -> None:
     counts = Counter(r["language"] for r in rows)
     print(f"drew {len(rows)} reviews (length-matched to the Urdu-script profile)")
     for language in LANGUAGES:
-        buckets = Counter(
-            r["length_bucket"] for r in rows if r["language"] == language
-        )
+        buckets = Counter(r["length_bucket"] for r in rows if r["language"] == language)
         print(f"  {language:16s} {counts[language]:3d}   {dict(buckets)}")
 
     taxonomy = load_taxonomy(TAXONOMY)
@@ -168,9 +162,7 @@ def main() -> None:
         group = [r for r in results if r["language"] == language]
         if not group:
             continue
-        answers = [
-            {m: i for m, i in r["models"].items() if i} for r in group
-        ]
+        answers = [{m: i for m, i in r["models"].items() if i} for r in group]
         same = sum(1 for a in answers if len(set(a.values())) == 1)
         print(f"  {language:16s} {same:3d}/{len(group):<3d} = {same / len(group) * 100:5.1f}%")
 

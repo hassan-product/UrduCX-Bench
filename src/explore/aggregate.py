@@ -117,8 +117,15 @@ def trend(reviews: list[Review], months: int = 24) -> list[dict]:
 def summary(reviews: list[Review], corpus_size: int) -> dict:
     """Headline counts for whatever is currently filtered."""
     if not reviews:
-        return {"total": 0, "share": 0.0, "bad_pct": 0.0, "labelled": 0,
-                "median_words": 0, "languages": {}, "span": ""}
+        return {
+            "total": 0,
+            "share": 0.0,
+            "bad_pct": 0.0,
+            "labelled": 0,
+            "median_words": 0,
+            "languages": {},
+            "span": "",
+        }
     bad = sum(1 for r in reviews if (r.rating or 5) <= 2)
     labelled = sum(1 for r in reviews if r.label)
     lengths = sorted(r.words for r in reviews)

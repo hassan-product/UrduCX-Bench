@@ -188,7 +188,9 @@ def serve(session: Session, port: int = 8800) -> None:
     Handler.session = session
     total = len(session.corpus.reviews)
     print(f"corpus  {total:,} reviews, {session.corpus.labelled:,} with an issue label")
-    print(f"        {len(session.corpus.values('product'))} apps, "
-          f"{len(session.corpus.values('version'))} app versions")
+    print(
+        f"        {len(session.corpus.values('product'))} apps, "
+        f"{len(session.corpus.values('version'))} app versions"
+    )
     print(f"\n  open  http://127.0.0.1:{port}\n\nCtrl-C to stop. Nothing leaves this machine.")
     HTTPServer(("127.0.0.1", port), Handler).serve_forever()

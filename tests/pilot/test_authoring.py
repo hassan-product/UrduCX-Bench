@@ -46,8 +46,7 @@ def test_template_has_twenty_blank_slots_and_four_language_forms() -> None:
 
     assert len(payload["complaints"]) == COMPLAINT_COUNT
     assert all(
-        set(complaint["variants"]) == set(LANGUAGE_FORMS)
-        for complaint in payload["complaints"]
+        set(complaint["variants"]) == set(LANGUAGE_FORMS) for complaint in payload["complaints"]
     )
     assert all(not complaint["gold_intent"] for complaint in payload["complaints"])
 

@@ -19,90 +19,90 @@ DEFAULT_TARGET_SIZE = 50
 DEFAULT_SEED = 20260821
 
 _CHALLENGE_CASES = {
-  "english": {
-    "phone": ("Call me at 03001234567 about ticket EN-2048.", "EN-2048"),
-    "account": (
-      "My account number 123456789012 has Rs 5000 missing.",
-      "Rs 5000",
-    ),
-    "cnic": ("My CNIC is 42101-1234567-1; date is 15/01/2026.", "15/01/2026"),
-    "iban": ("Use IBAN PK36SCBL0000001123456702 for case TXN-88421.", "TXN-88421"),
-    "email": ("Email me at ali.khan@example.com about 2 GB data.", "2 GB"),
-    "name": ("My name is Ali Khan. The disputed amount is Rs 1200.", "Rs 1200"),
-  },
-  "roman_urdu": {
-    "phone": ("Mera phone ۰۳۰۰۱۲۳۴۵۶۷ hai, reference RU-2048 rehna chahiye.", "RU-2048"),
-    "account": (
-      "Mera account number ١٢٣٤٥٦٧٨٩٠١٢ hai, Rs 1200 wapis chahiye.",
-      "Rs 1200",
-    ),
-    "cnic": ("Mera CNIC ۴۲۱۰۱-۱۲۳۴۵۶۷-۱ hai, date 15/01/2026 thi.", "15/01/2026"),
-    "iban": ("Mera IBAN PK۳۶SCBL۰۰۰۰۰۰۱۱۲۳۴۵۶۷۰۲ hai, ref RU-88421 hai.", "RU-88421"),
-    "email": ("Meri email sana.user@example.com hai, package 2 GB ka tha.", "2 GB"),
-    "name": ("Mera naam Sana Ahmed hai, mere Rs 5000 kat gaye.", "Rs 5000"),
-  },
-  "urdu_script": {
-    "phone": ("میرا فون ۰۳۰۰۱۲۳۴۵۶۷ ہے، حوالہ UR-2048 محفوظ رکھیں۔", "UR-2048"),
-    "account": (
-      "میرا اکاؤنٹ نمبر ١٢٣٤٥٦٧٨٩٠١٢ ہے، رقم ۵۰۰۰ روپے واپس کریں۔",
-      "۵۰۰۰ روپے",
-    ),
-    "cnic": ("میرا شناختی کارڈ ۴۲۱۰۱-۱۲۳۴۵۶۷-۱ ہے، تاریخ ۱۵/۰۱/۲۰۲۶ ہے۔", "۱۵/۰۱/۲۰۲۶"),
-    "iban": ("میرا IBAN PK۳۶SCBL۰۰۰۰۰۰۱۱۲۳۴۵۶۷۰۲ ہے، حوالہ UR-88421 ہے۔", "UR-88421"),
-    "email": ("میری ای میل sana.user@example.com ہے، پیکج 2 GB کا تھا۔", "2 GB"),
-    "name": ("میرا نام ثنا احمد ہے، میرے ۵۰۰۰ روپے کٹ گئے۔", "۵۰۰۰ روپے"),
-  },
-  "code_switched": {
-    "phone": ("میرا callback number +923001234567 hai, ticket CS-2048 open hai.", "CS-2048"),
-    "account": (
-      "رقم account no 123456789012 mein bheji thi, ref CS-88421 hai.",
-      "CS-88421",
-    ),
-    "cnic": ("میرا CNIC ۴۲۱۰۱-۱۲۳۴۵۶۷-۱ hai, verification date 15 January hai.", "15 January"),
-    "iban": ("میرا IBAN PK36SCBL0000001123456702 hai, amount Rs 5000 hai.", "Rs 5000"),
-    "email": ("میری email sana.user@example.com hai, data bundle 2 GB tha.", "2 GB"),
-    "name": ("My name is Sana Ahmed. میرے Rs 1200 deduct ہوئے۔", "Rs 1200"),
-  },
+    "english": {
+        "phone": ("Call me at 03001234567 about ticket EN-2048.", "EN-2048"),
+        "account": (
+            "My account number 123456789012 has Rs 5000 missing.",
+            "Rs 5000",
+        ),
+        "cnic": ("My CNIC is 42101-1234567-1; date is 15/01/2026.", "15/01/2026"),
+        "iban": ("Use IBAN PK36SCBL0000001123456702 for case TXN-88421.", "TXN-88421"),
+        "email": ("Email me at ali.khan@example.com about 2 GB data.", "2 GB"),
+        "name": ("My name is Ali Khan. The disputed amount is Rs 1200.", "Rs 1200"),
+    },
+    "roman_urdu": {
+        "phone": ("Mera phone ۰۳۰۰۱۲۳۴۵۶۷ hai, reference RU-2048 rehna chahiye.", "RU-2048"),
+        "account": (
+            "Mera account number ١٢٣٤٥٦٧٨٩٠١٢ hai, Rs 1200 wapis chahiye.",
+            "Rs 1200",
+        ),
+        "cnic": ("Mera CNIC ۴۲۱۰۱-۱۲۳۴۵۶۷-۱ hai, date 15/01/2026 thi.", "15/01/2026"),
+        "iban": ("Mera IBAN PK۳۶SCBL۰۰۰۰۰۰۱۱۲۳۴۵۶۷۰۲ hai, ref RU-88421 hai.", "RU-88421"),
+        "email": ("Meri email sana.user@example.com hai, package 2 GB ka tha.", "2 GB"),
+        "name": ("Mera naam Sana Ahmed hai, mere Rs 5000 kat gaye.", "Rs 5000"),
+    },
+    "urdu_script": {
+        "phone": ("میرا فون ۰۳۰۰۱۲۳۴۵۶۷ ہے، حوالہ UR-2048 محفوظ رکھیں۔", "UR-2048"),
+        "account": (
+            "میرا اکاؤنٹ نمبر ١٢٣٤٥٦٧٨٩٠١٢ ہے، رقم ۵۰۰۰ روپے واپس کریں۔",
+            "۵۰۰۰ روپے",
+        ),
+        "cnic": ("میرا شناختی کارڈ ۴۲۱۰۱-۱۲۳۴۵۶۷-۱ ہے، تاریخ ۱۵/۰۱/۲۰۲۶ ہے۔", "۱۵/۰۱/۲۰۲۶"),
+        "iban": ("میرا IBAN PK۳۶SCBL۰۰۰۰۰۰۱۱۲۳۴۵۶۷۰۲ ہے، حوالہ UR-88421 ہے۔", "UR-88421"),
+        "email": ("میری ای میل sana.user@example.com ہے، پیکج 2 GB کا تھا۔", "2 GB"),
+        "name": ("میرا نام ثنا احمد ہے، میرے ۵۰۰۰ روپے کٹ گئے۔", "۵۰۰۰ روپے"),
+    },
+    "code_switched": {
+        "phone": ("میرا callback number +923001234567 hai, ticket CS-2048 open hai.", "CS-2048"),
+        "account": (
+            "رقم account no 123456789012 mein bheji thi, ref CS-88421 hai.",
+            "CS-88421",
+        ),
+        "cnic": ("میرا CNIC ۴۲۱۰۱-۱۲۳۴۵۶۷-۱ hai, verification date 15 January hai.", "15 January"),
+        "iban": ("میرا IBAN PK36SCBL0000001123456702 hai, amount Rs 5000 hai.", "Rs 5000"),
+        "email": ("میری email sana.user@example.com hai, data bundle 2 GB tha.", "2 GB"),
+        "name": ("My name is Sana Ahmed. میرے Rs 1200 deduct ہوئے۔", "Rs 1200"),
+    },
 }
 
 _EXPECTED_PLACEHOLDERS = {
-  "phone": "<PHONE>",
-  "account": "<ACCOUNT>",
-  "cnic": "<CNIC>",
-  "iban": "<IBAN>",
-  "email": "<EMAIL>",
-  "name": "<NAME>",
+    "phone": "<PHONE>",
+    "account": "<ACCOUNT>",
+    "cnic": "<CNIC>",
+    "iban": "<IBAN>",
+    "email": "<EMAIL>",
+    "name": "<NAME>",
 }
 
 _PII_RISK_CUE_RE = re.compile(
-  r"(?i)(?:@|\b(?:cnic|nic|iban|account|acct|phone|mobile|number|naam)\b|"
-  r"شناختی|اکاؤنٹ|اکاونٹ|فون|موبائل|نمبر|نام|(?:\d[-\s]?){5,})"
+    r"(?i)(?:@|\b(?:cnic|nic|iban|account|acct|phone|mobile|number|naam)\b|"
+    r"شناختی|اکاؤنٹ|اکاونٹ|فون|موبائل|نمبر|نام|(?:\d[-\s]?){5,})"
 )
 
 
 def has_pii_risk_cue(record: dict[str, Any]) -> bool:
-  """Flag unchanged records worth human review without treating them as PII."""
-  text = normalize_for_matching(str(record.get("text_clean", "")))
-  return bool(_PII_RISK_CUE_RE.search(text))
+    """Flag unchanged records worth human review without treating them as PII."""
+    text = normalize_for_matching(str(record.get("text_clean", "")))
+    return bool(_PII_RISK_CUE_RE.search(text))
 
 
 def build_challenge_records() -> list[dict[str, str]]:
-  """Build synthetic positive cases without mixing them into source review data."""
-  records = []
-  for language in LANGUAGE_VALUES:
-    for pii_type, (text, must_preserve) in _CHALLENGE_CASES[language].items():
-      scrubbed, _ = scrub_text(text)
-      records.append(
-        {
-          "language": language,
-          "pii_type": pii_type,
-          "text_clean": text,
-          "text_scrubbed": scrubbed,
-          "expected_placeholder": _EXPECTED_PLACEHOLDERS[pii_type],
-          "must_preserve": must_preserve,
-        }
-      )
-  return records
+    """Build synthetic positive cases without mixing them into source review data."""
+    records = []
+    for language in LANGUAGE_VALUES:
+        for pii_type, (text, must_preserve) in _CHALLENGE_CASES[language].items():
+            scrubbed, _ = scrub_text(text)
+            records.append(
+                {
+                    "language": language,
+                    "pii_type": pii_type,
+                    "text_clean": text,
+                    "text_scrubbed": scrubbed,
+                    "expected_placeholder": _EXPECTED_PLACEHOLDERS[pii_type],
+                    "must_preserve": must_preserve,
+                }
+            )
+    return records
 
 
 def sample_audit_records(
@@ -117,8 +117,7 @@ def sample_audit_records(
 
     base, remainder = divmod(target_size, len(LANGUAGE_VALUES))
     quotas = {
-        language: base + (index < remainder)
-        for index, language in enumerate(LANGUAGE_VALUES)
+        language: base + (index < remainder) for index, language in enumerate(LANGUAGE_VALUES)
     }
     generator = random.Random(seed)
     selected: list[dict[str, Any]] = []
@@ -133,14 +132,10 @@ def sample_audit_records(
             if record.get("text_clean") != record.get("text_scrubbed")
         ]
         high_risk = [
-          record
-          for record in candidates
-          if record not in changed and has_pii_risk_cue(record)
+            record for record in candidates if record not in changed and has_pii_risk_cue(record)
         ]
         unchanged = [
-          record
-          for record in candidates
-          if record not in changed and record not in high_risk
+            record for record in candidates if record not in changed and record not in high_risk
         ]
         generator.shuffle(changed)
         generator.shuffle(high_risk)
@@ -192,12 +187,8 @@ def render_audit(
 ) -> str:
     """Render distinct real-data and synthetic-challenge verification sections."""
     counts = Counter(str(record["language"]) for record in records)
-    changed = sum(
-        record.get("text_clean") != record.get("text_scrubbed") for record in records
-    )
-    distribution = " | ".join(
-        f"{language}: {counts[language]}" for language in LANGUAGE_VALUES
-    )
+    changed = sum(record.get("text_clean") != record.get("text_scrubbed") for record in records)
+    distribution = " | ".join(f"{language}: {counts[language]}" for language in LANGUAGE_VALUES)
     total_records = len(records) + len(challenge_records)
     return f"""<!doctype html>
 <html lang="en">

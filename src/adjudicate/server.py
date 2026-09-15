@@ -103,8 +103,7 @@ class Session:
             return [
                 i
                 for i in self.worklist
-                if (j := self.judgements.get(i.id)) is None
-                or j.label_version < self.labels.version
+                if (j := self.judgements.get(i.id)) is None or j.label_version < self.labels.version
             ]
         return [i for i in self.worklist if i.id not in self.judgements]
 
@@ -296,11 +295,7 @@ class Handler(BaseHTTPRequestHandler):
             )
         elif route == "/next":
             pending = session.pending()
-            item = (
-                pending[0].public(reveal_predictions=not session.blind)
-                if pending
-                else None
-            )
+            item = pending[0].public(reveal_predictions=not session.blind) if pending else None
             self._json({"item": item, **self._state()})
         elif route == "/back":
             self._back(query)
@@ -321,9 +316,7 @@ class Handler(BaseHTTPRequestHandler):
         item = next((i for i in self.session.items if i.id == previous.item_id), None)
         self._json(
             {
-                "item": item.public(reveal_predictions=not self.session.blind)
-                if item
-                else None,
+                "item": item.public(reveal_predictions=not self.session.blind) if item else None,
                 "previous": previous.to_dict(),
                 "steps": steps,
             }

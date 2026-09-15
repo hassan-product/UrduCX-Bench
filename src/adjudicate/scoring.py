@@ -45,8 +45,7 @@ def cohens_kappa(pairs: list[tuple[str, str]]) -> float:
     observed = sum(1 for a, b in pairs if a == b) / total
     first, second = Counter(a for a, _ in pairs), Counter(b for _, b in pairs)
     expected = sum(
-        first[label] / total * second[label] / total
-        for label in set(first) | set(second)
+        first[label] / total * second[label] / total for label in set(first) | set(second)
     )
     return (observed - expected) / (1 - expected) if expected < 1 else float("nan")
 
@@ -98,9 +97,7 @@ def joint_error(pairs: list[tuple[Item, Judgement]]) -> tuple[int, int]:
     errors without ever surfacing them.
     """
     controls = [(i, j) for i, j in pairs if i.is_control]
-    wrong = sum(
-        1 for i, j in controls if next(iter(i.predictions.values())) != j.label
-    )
+    wrong = sum(1 for i, j in controls if next(iter(i.predictions.values())) != j.label)
     return wrong, len(controls)
 
 
@@ -119,7 +116,6 @@ def reweighted_accuracy(
         return None
     agree_hits, _ = accuracy(agree, model)
     disagree_hits, _ = accuracy(disagree, model)
-    return (
-        population_agreement_rate * (agree_hits / len(agree))
-        + (1 - population_agreement_rate) * (disagree_hits / len(disagree))
-    )
+    return population_agreement_rate * (agree_hits / len(agree)) + (
+        1 - population_agreement_rate
+    ) * (disagree_hits / len(disagree))

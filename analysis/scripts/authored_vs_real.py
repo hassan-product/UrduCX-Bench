@@ -89,9 +89,7 @@ def main() -> None:
 
     predictions: dict[tuple[str, str], dict[str, str]] = defaultdict(dict)
     for row in results:
-        predictions[(row["complaint_id"], row["language"])][row["model"]] = row[
-            "predicted_intent"
-        ]
+        predictions[(row["complaint_id"], row["language"])][row["model"]] = row["predicted_intent"]
 
     gold = {c["complaint_id"]: c["gold_intent"] for c in payload["complaints"]}
 
@@ -99,9 +97,7 @@ def main() -> None:
     print("\n  accuracy against authored gold labels")
     for model in MODELS:
         hits = sum(
-            1
-            for (cid, _lang), preds in predictions.items()
-            if preds.get(model) == gold[cid]
+            1 for (cid, _lang), preds in predictions.items() if preds.get(model) == gold[cid]
         )
         total = sum(1 for preds in predictions.values() if model in preds)
         print(f"    {model:20s} {hits}/{total} = {hits / total * 100:5.1f}%")

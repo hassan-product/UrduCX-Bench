@@ -253,10 +253,7 @@ def collect_app(
         checkpoint["complete"] = next_token is None
         write_checkpoint(checkpoint_path, checkpoint)
         pages_this_run += 1
-        print(
-            f"{app['name']}: wrote {len(page)} reviews "
-            f"({checkpoint['reviews_collected']} total)"
-        )
+        print(f"{app['name']}: wrote {len(page)} reviews ({checkpoint['reviews_collected']} total)")
         if next_token is None:
             break
         if max_reviews is not None and checkpoint["reviews_collected"] >= max_reviews:

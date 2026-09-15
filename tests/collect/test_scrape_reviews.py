@@ -70,9 +70,7 @@ def test_continuation_token_round_trip() -> None:
 def test_collect_app_writes_page_before_resumable_checkpoint(tmp_path: Path) -> None:
     calls: list[dict[str, Any]] = []
 
-    def fake_reviews(
-        app_id: str, **kwargs: Any
-    ) -> tuple[list[dict[str, Any]], _ContinuationToken]:
+    def fake_reviews(app_id: str, **kwargs: Any) -> tuple[list[dict[str, Any]], _ContinuationToken]:
         calls.append({"app_id": app_id, **kwargs})
         return ([{"reviewId": "one", "content": "Theek nahin", "score": 1}], make_token())
 
@@ -140,9 +138,7 @@ def test_collect_app_marks_complete_on_empty_page(tmp_path: Path) -> None:
 def test_collect_app_stops_at_max_reviews(tmp_path: Path) -> None:
     page_count = 0
 
-    def fake_reviews(
-        app_id: str, **kwargs: Any
-    ) -> tuple[list[dict[str, Any]], _ContinuationToken]:
+    def fake_reviews(app_id: str, **kwargs: Any) -> tuple[list[dict[str, Any]], _ContinuationToken]:
         nonlocal page_count
         page_count += 1
         return (

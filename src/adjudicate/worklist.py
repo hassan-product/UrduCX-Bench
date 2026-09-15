@@ -61,8 +61,9 @@ def build_worklist(
     return pool[:limit] if limit else pool
 
 
-def progress(worklist: list[Item], judgements: dict[str, Judgement], mode: str,
-             label_version: int) -> tuple[int, int]:
+def progress(
+    worklist: list[Item], judgements: dict[str, Judgement], mode: str, label_version: int
+) -> tuple[int, int]:
     """Done and total for this pass.
 
     Counted against this worklist, never against every judgement ever made: a controls
@@ -71,9 +72,7 @@ def progress(worklist: list[Item], judgements: dict[str, Judgement], mode: str,
     """
     if mode == "revisit":
         done = sum(
-            1
-            for i in worklist
-            if (j := judgements.get(i.id)) and j.label_version >= label_version
+            1 for i in worklist if (j := judgements.get(i.id)) and j.label_version >= label_version
         )
     else:
         done = sum(1 for i in worklist if i.id in judgements)

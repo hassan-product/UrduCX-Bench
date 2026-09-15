@@ -136,9 +136,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(prog="python -m src.adjudicate", description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
 
-    j = sub.add_parser(
-        "judge", help="open the app: judge items and view results"
-    )
+    j = sub.add_parser("judge", help="open the app: judge items and view results")
     j.add_argument("--items", type=Path, help="JSONL of items")
     j.add_argument("--labels", type=Path, help="YAML label set")
     j.add_argument("--out", type=Path, help="JSONL to write judgements to")
@@ -179,9 +177,7 @@ def main() -> None:
     if getattr(args, "demo", None) is None and args.command == "judge":
         missing = [n for n in ("items", "labels", "out") if getattr(args, n) is None]
         if missing:
-            parser.error(
-                f"judge needs --{', --'.join(missing)}, or --demo to generate a dataset"
-            )
+            parser.error(f"judge needs --{', --'.join(missing)}, or --demo to generate a dataset")
     args.func(args)
 
 

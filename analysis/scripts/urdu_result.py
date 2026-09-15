@@ -45,8 +45,7 @@ def row(label: str, k: int, n: int) -> str:
 def main() -> None:
     """Report per-language agreement and, once gold labels exist, accuracy."""
     work = {
-        json.loads(line)["review_id"]: json.loads(line)
-        for line in WORKLIST.open(encoding="utf-8")
+        json.loads(line)["review_id"]: json.loads(line) for line in WORKLIST.open(encoding="utf-8")
     }
     gold, excluded, skipped = {}, 0, 0
     if GOLD.exists():

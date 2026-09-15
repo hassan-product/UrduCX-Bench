@@ -78,9 +78,7 @@ def test_resolve_targets_keeps_results_unconfirmed() -> None:
             }
         ]
 
-    apps = resolve_targets(
-        ({"name": "Easypaisa", "query": "Easypaisa"},), search_fn=fake_search
-    )
+    apps = resolve_targets(({"name": "Easypaisa", "query": "Easypaisa"},), search_fn=fake_search)
 
     assert apps == [
         {

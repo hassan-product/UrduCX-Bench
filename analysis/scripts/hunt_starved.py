@@ -137,9 +137,7 @@ def main() -> None:
     import os
 
     rows = [json.loads(line) for line in CORPUS.open(encoding="utf-8")]
-    exclude = {
-        json.loads(line)["review_id"] for line in ALREADY_LABELLED.open(encoding="utf-8")
-    }
+    exclude = {json.loads(line)["review_id"] for line in ALREADY_LABELLED.open(encoding="utf-8")}
     print(f"corpus {len(rows):,} | already labelled {len(exclude)}")
 
     picks = find_candidates(rows, exclude)
@@ -192,9 +190,7 @@ def main() -> None:
     for intent in PATTERNS:
         group = [r for r in results if r["hunted_for"] == intent and "label" in r]
         hits = sum(1 for r in group if r["label"]["intent"] == intent)
-        others = Counter(
-            r["label"]["intent"] for r in group if r["label"]["intent"] != intent
-        )
+        others = Counter(r["label"]["intent"] for r in group if r["label"]["intent"] != intent)
         top = ", ".join(f"{k} {v}" for k, v in others.most_common(3))
         rate = hits / len(group) * 100 if group else 0.0
         print(f"{intent:36s} {len(group):5d} {hits:5d} {rate:6.1f}%  {top[:52]}")

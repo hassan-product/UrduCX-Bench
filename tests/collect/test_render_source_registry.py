@@ -25,9 +25,7 @@ def test_current_registry_has_dual_platform_core_and_distinct_jazz_products() ->
         for product in core_products
     )
     simosa_ids = {listing["platform_app_id"] for listing in products["simosa"]["listings"]}
-    jazzcash_ids = {
-        listing["platform_app_id"] for listing in products["jazzcash"]["listings"]
-    }
+    jazzcash_ids = {listing["platform_app_id"] for listing in products["jazzcash"]["listings"]}
     assert simosa_ids.isdisjoint(jazzcash_ids)
 
 
@@ -35,9 +33,7 @@ def test_registry_rejects_duplicate_platform_identity(tmp_path: Path) -> None:
     registry = load_registry(REGISTRY_PATH)
     invalid_registry = deepcopy(registry)
     duplicate = invalid_registry["products"][0]["listings"][0]
-    invalid_registry["products"][1]["listings"][0]["platform_app_id"] = duplicate[
-        "platform_app_id"
-    ]
+    invalid_registry["products"][1]["listings"][0]["platform_app_id"] = duplicate["platform_app_id"]
     config_path = tmp_path / "registry.yaml"
     config_path.write_text(yaml.safe_dump(invalid_registry), encoding="utf-8")
 

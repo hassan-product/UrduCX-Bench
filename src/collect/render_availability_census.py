@@ -38,9 +38,7 @@ def parse_timestamp(value: Any) -> datetime | None:
 def summarize_records(records: list[dict[str, Any]]) -> dict[str, Any]:
     """Summarize counts, observed dates, and rating distribution without review text."""
     timestamps = [
-        parsed
-        for record in records
-        if (parsed := parse_timestamp(record.get("timestamp")))
+        parsed for record in records if (parsed := parse_timestamp(record.get("timestamp")))
     ]
     ratings = Counter(str(record.get("rating")) for record in records if record.get("rating"))
     return {
@@ -62,9 +60,7 @@ def read_listing_records(reviews_dir: Path, listing: dict[str, Any]) -> list[dic
     records = []
     for page_path in sorted(base.glob("page_*.jsonl")):
         records.extend(
-            json.loads(line)
-            for line in page_path.read_text(encoding="utf-8").splitlines()
-            if line
+            json.loads(line) for line in page_path.read_text(encoding="utf-8").splitlines() if line
         )
     return records
 

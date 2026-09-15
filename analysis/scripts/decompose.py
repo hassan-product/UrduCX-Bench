@@ -48,15 +48,10 @@ def line(label: str, k: int, n: int, width: int = 34) -> str:
 
 def main() -> None:
     """Print the decomposition, the control check, and model accuracy against gold."""
-    rows = [
-        json.loads(line_)
-        for line_ in JUDGEMENTS.open(encoding="utf-8")
-        if line_.strip()
-    ]
+    rows = [json.loads(line_) for line_ in JUDGEMENTS.open(encoding="utf-8") if line_.strip()]
     rows = [r for r in rows if not r.get("skipped") and r.get("human_intent")]
     meta = {
-        json.loads(line_)["review_id"]: json.loads(line_)
-        for line_ in SAMPLE.open(encoding="utf-8")
+        json.loads(line_)["review_id"]: json.loads(line_) for line_ in SAMPLE.open(encoding="utf-8")
     }
 
     disagreements = [r for r in rows if r["models"][SONNET] != r["models"][OPUS]]
@@ -137,9 +132,7 @@ def main() -> None:
         hits = sum(1 for r in rows if r["human_intent"] == r["models"][key])
         print(line(name, hits, len(rows)))
     agreed_both = sum(
-        1
-        for r in rows
-        if r["human_intent"] == r["models"][SONNET] == r["models"][OPUS]
+        1 for r in rows if r["human_intent"] == r["models"][SONNET] == r["models"][OPUS]
     )
     print(line("both models correct together", agreed_both, len(rows)))
 
@@ -149,6 +142,7 @@ def main() -> None:
     # therefore far below true accuracy and must not be reported as a model score.
     def population_disagreement_rate() -> float:
         """Share of the full 490 labelled reviews where the two models differ."""
+
         def intents(model: str) -> dict[str, str]:
             path = Path(f"spike/phase3_diag/diag_{model.replace('.', '-')}.jsonl")
             out = {}
@@ -166,16 +160,16 @@ def main() -> None:
     print("\n" + "=" * 66)
     print("5. ACCURACY REWEIGHTED TO POPULATION BASE RATES")
     print("=" * 66)
-    print(f"  disagreements are {rate * 100:.1f}% of the 490 but "
-          f"{len(disagreements) / len(rows) * 100:.1f}% of what was judged,")
+    print(
+        f"  disagreements are {rate * 100:.1f}% of the 490 but "
+        f"{len(disagreements) / len(rows) * 100:.1f}% of what was judged,"
+    )
     print("  so raw accuracy on the judged set understates the true figure.\n")
     for name, key in (("Claude Sonnet 5", SONNET), ("Claude Opus 5", OPUS)):
         on_dis = sum(1 for r in disagreements if r["human_intent"] == r["models"][key])
         on_agr = sum(1 for r in controls if r["human_intent"] == r["models"][key])
         raw = sum(1 for r in rows if r["human_intent"] == r["models"][key]) / len(rows)
-        corrected = rate * (on_dis / len(disagreements)) + (1 - rate) * (
-            on_agr / len(controls)
-        )
+        corrected = rate * (on_dis / len(disagreements)) + (1 - rate) * (on_agr / len(controls))
         print(f"  {name:<18s} raw {raw * 100:5.1f}%   corrected {corrected * 100:5.1f}%")
 
     print("\n  Per-language accuracy is NOT reported. Splitting 125 judgements four ways")

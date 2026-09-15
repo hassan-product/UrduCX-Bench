@@ -124,9 +124,7 @@ def build_worklist(mode: str = "normal", extra: int = 50) -> list[dict[str, Any]
                 continue  # already re-judged under the current taxonomy
             text = row.get("text_scrubbed") or ""
             model_used_new = any(i in NEW_IN_V3 for i in row["models"].values())
-            if not (
-                model_used_new or SUPPORT_TERMS.search(text) or CARD_TERMS.search(text)
-            ):
+            if not (model_used_new or SUPPORT_TERMS.search(text) or CARD_TERMS.search(text)):
                 continue
             if previous["human_intent"] in NEW_IN_V3:
                 continue
@@ -164,8 +162,7 @@ def build_worklist(mode: str = "normal", extra: int = 50) -> list[dict[str, Any]
         return items
 
     texts = {
-        json.loads(line)["review_id"]: json.loads(line)
-        for line in SAMPLE.open(encoding="utf-8")
+        json.loads(line)["review_id"]: json.loads(line) for line in SAMPLE.open(encoding="utf-8")
     }
     per_model = {model: load_model_rows(model) for model in MODELS}
     shared = sorted(set.intersection(*(set(rows) for rows in per_model.values())))
@@ -188,9 +185,7 @@ def build_worklist(mode: str = "normal", extra: int = 50) -> list[dict[str, Any]
         (disagreements if item["_kind"] == "disagreement" else agreements).append(item)
 
     rng = random.Random(SEED)
-    concrete = [
-        a for a in agreements if names_something_concrete(a["text"], a["rating"])
-    ]
+    concrete = [a for a in agreements if names_something_concrete(a["text"], a["rating"])]
 
     if mode == "controls":
         # Only agreements, and only ones not already judged: these tighten the
@@ -218,11 +213,7 @@ def done_ids(path: Path = JUDGEMENTS) -> set[str]:
     """Review ids already judged in this pass, so a restart resumes rather than repeats."""
     if not path.exists():
         return set()
-    return {
-        json.loads(line)["review_id"]
-        for line in path.open(encoding="utf-8")
-        if line.strip()
-    }
+    return {json.loads(line)["review_id"] for line in path.open(encoding="utf-8") if line.strip()}
 
 
 PAGE = """<!doctype html><html><head><meta charset="utf-8">
@@ -478,8 +469,11 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def _json(self, payload: dict[str, Any]) -> None:
-        self._send(200, json.dumps(payload, ensure_ascii=False).encode("utf-8"),
-                   "application/json; charset=utf-8")
+        self._send(
+            200,
+            json.dumps(payload, ensure_ascii=False).encode("utf-8"),
+            "application/json; charset=utf-8",
+        )
 
     def do_GET(self) -> None:  # noqa: N802 - stdlib naming
         if self.path == "/":
@@ -496,9 +490,7 @@ class Handler(BaseHTTPRequestHandler):
             judged = []
             if self.output.exists():
                 judged = [
-                    json.loads(line)
-                    for line in self.output.open(encoding="utf-8")
-                    if line.strip()
+                    json.loads(line) for line in self.output.open(encoding="utf-8") if line.strip()
                 ]
             if steps > len(judged):
                 self._json({"item": None, "steps": len(judged)})
@@ -507,11 +499,7 @@ class Handler(BaseHTTPRequestHandler):
             source = next(
                 (i for i in self.worklist if i["review_id"] == previous["review_id"]), None
             )
-            item = (
-                {k: v for k, v in source.items() if not k.startswith("_")}
-                if source
-                else None
-            )
+            item = {k: v for k, v in source.items() if not k.startswith("_")} if source else None
             self._json({"item": item, "previous": previous, "steps": steps})
         elif self.path == "/next":
             if self.mode == "revisit":
@@ -519,8 +507,7 @@ class Handler(BaseHTTPRequestHandler):
                     json.loads(raw)["review_id"]
                     for raw in self.output.open(encoding="utf-8")
                     if raw.strip()
-                    and int(json.loads(raw).get("taxonomy_version", 0))
-                    >= self.taxonomy_version
+                    and int(json.loads(raw).get("taxonomy_version", 0)) >= self.taxonomy_version
                 }
             else:
                 finished = done_ids(self.output)
@@ -529,9 +516,7 @@ class Handler(BaseHTTPRequestHandler):
             if pending:
                 item = {k: v for k, v in pending[0].items() if not k.startswith("_")}
                 if not self.blind:
-                    item["models"] = {
-                        m: pending[0]["_models"][m]["intent"] for m in MODELS
-                    }
+                    item["models"] = {m: pending[0]["_models"][m]["intent"] for m in MODELS}
             # Count progress against THIS pass's worklist, not every judgement ever
             # made - a controls or recheck pass shares its output file with the main run.
             done = len(self.worklist) - len(pending)
@@ -546,9 +531,7 @@ class Handler(BaseHTTPRequestHandler):
         length = int(self.headers.get("Content-Length", 0))
         body = json.loads(self.rfile.read(length) or b"{}")
 
-        source = next(
-            (i for i in self.worklist if i["review_id"] == body.get("review_id")), None
-        )
+        source = next((i for i in self.worklist if i["review_id"] == body.get("review_id")), None)
         if source is None:
             self._json({"models": None})
             return
@@ -578,9 +561,7 @@ class Handler(BaseHTTPRequestHandler):
         existing = []
         if self.output.exists():
             existing = [
-                json.loads(line)
-                for line in self.output.open(encoding="utf-8")
-                if line.strip()
+                json.loads(line) for line in self.output.open(encoding="utf-8") if line.strip()
             ]
         kept = [r for r in existing if r["review_id"] != record["review_id"]]
         revised = len(kept) != len(existing)
@@ -655,11 +636,15 @@ def main() -> None:
     elif args.mode == "controls":
         print("CONTROLS ONLY — reviews where both models already agreed.")
     else:
-        print("controls are drawn only from reviews naming something concrete; "
-              "all disagreements are kept")
+        print(
+            "controls are drawn only from reviews naming something concrete; "
+            "all disagreements are kept"
+        )
     finished = len(done_ids(Handler.output))
-    print(f"worklist: {len(Handler.worklist)} items "
-          f"({kinds['disagreement']} disagreements, {kinds['control']} controls)")
+    print(
+        f"worklist: {len(Handler.worklist)} items "
+        f"({kinds['disagreement']} disagreements, {kinds['control']} controls)"
+    )
     print(f"already judged: {finished}")
     print(f"\n  open  http://127.0.0.1:{args.port}\n\nCtrl-C to stop; progress is saved.")
 

@@ -35,8 +35,7 @@ def test_sample_audit_records_is_stratified_and_prioritizes_changes() -> None:
     )
     assert all(
         any(
-            record["language"] == language
-            and record["text_clean"] != record["text_scrubbed"]
+            record["language"] == language and record["text_clean"] != record["text_scrubbed"]
             for record in selected
         )
         for language in LANGUAGE_VALUES
@@ -47,11 +46,7 @@ def test_sample_audit_records_is_stratified_and_prioritizes_changes() -> None:
 def test_sample_audit_records_prioritizes_unredacted_pii_cues() -> None:
     records = _records_per_language()
     for language in LANGUAGE_VALUES:
-        candidate = next(
-            record
-            for record in records
-            if record["review_id"] == f"{language}-19"
-        )
+        candidate = next(record for record in records if record["review_id"] == f"{language}-19")
         candidate["text_clean"] = "CNIC 42101 and account details are pending"
         candidate["text_scrubbed"] = candidate["text_clean"]
 

@@ -43,6 +43,8 @@ MODELS_WITHOUT_EFFORT = frozenset({"claude-haiku-4-5", "claude-sonnet-4-5"})
 def supports_effort(model: str) -> bool:
     """Whether this model accepts output_config.effort."""
     return model not in MODELS_WITHOUT_EFFORT
+
+
 MAX_ATTEMPTS = 5
 BACKOFF_BASE_SECONDS = 2.0
 
@@ -82,6 +84,7 @@ def is_retryable(error: Exception) -> bool:
         return True
     status = getattr(error, "status_code", None)
     return status is not None and (status == 429 or status >= 500)
+
 
 SleepFunction = Callable[[float], None]
 ClockFunction = Callable[[], float]
@@ -125,9 +128,7 @@ def cache_key(text: str, *, model: str, taxonomy_version: int) -> str:
     Keying on text alone lets one model serve another model's reply, and lets a
     stale reply survive a prompt or taxonomy change. Mirrors `src/pilot/run_pilot.py`.
     """
-    payload = "|".join(
-        (model, f"prompt_v{PROMPT_VERSION}", f"taxonomy_v{taxonomy_version}", text)
-    )
+    payload = "|".join((model, f"prompt_v{PROMPT_VERSION}", f"taxonomy_v{taxonomy_version}", text))
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 

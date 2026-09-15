@@ -168,9 +168,7 @@ class Corpus:
         return sum(1 for r in self.reviews if r.label)
 
 
-def load_corpus(
-    path: Path = CORPUS, *, include_refresh: bool = True
-) -> Corpus:
+def load_corpus(path: Path = CORPUS, *, include_refresh: bool = True) -> Corpus:
     """Read the cleaned corpus, add forward-collected reviews, and join labels."""
     labels = _load_labels()
     reviews: list[Review] = []

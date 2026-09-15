@@ -36,8 +36,7 @@ def build_template() -> dict[str, Any]:
                 "complaint_id": f"pilot-{index:02d}",
                 "gold_intent": "",
                 "variants": {
-                    language: {"text": "", "fact_span": ""}
-                    for language in LANGUAGE_FORMS
+                    language: {"text": "", "fact_span": ""} for language in LANGUAGE_FORMS
                 },
             }
             for index in range(1, COMPLAINT_COUNT + 1)
@@ -81,9 +80,7 @@ def validate_pilot(payload: dict[str, Any], *, valid_intents: set[str]) -> None:
             if not text:
                 raise ValueError(f"{complaint_id}/{language}: text is required")
             if not fact_span or fact_span not in text:
-                raise ValueError(
-                    f"{complaint_id}/{language}: fact_span must occur exactly in text"
-                )
+                raise ValueError(f"{complaint_id}/{language}: fact_span must occur exactly in text")
 
     missing_groups = [
         name

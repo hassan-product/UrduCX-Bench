@@ -69,9 +69,7 @@ def main() -> None:
     by_language = Counter(record["language"] for record in drawn)
     print(f"drew {len(drawn)} into {OUTPUT}")
     for language, count in by_language.most_common():
-        positives = sum(
-            1 for r in drawn if r["language"] == language and r["severity_proxy"]
-        )
+        positives = sum(1 for r in drawn if r["language"] == language and r["severity_proxy"])
         print(f"  {language:16s} {count:4d}  (proxy+ {positives}, proxy- {count - positives})")
 
 

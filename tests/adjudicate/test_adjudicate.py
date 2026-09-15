@@ -138,12 +138,10 @@ def test_unblind_judgements_are_excluded_unless_requested() -> None:
 
 def test_reweighting_lifts_accuracy_measured_on_an_enriched_sample() -> None:
     agree = [
-        (_item(f"a{n}", x="p", y="p"), Judgement(item_id=f"a{n}", label="p"))
-        for n in range(10)
+        (_item(f"a{n}", x="p", y="p"), Judgement(item_id=f"a{n}", label="p")) for n in range(10)
     ]
     disagree = [
-        (_item(f"d{n}", x="p", y="q"), Judgement(item_id=f"d{n}", label="z"))
-        for n in range(10)
+        (_item(f"d{n}", x="p", y="q"), Judgement(item_id=f"d{n}", label="z")) for n in range(10)
     ]
     pairs = agree + disagree
 
@@ -301,10 +299,14 @@ def test_spread_is_zero_when_every_group_performs_identically() -> None:
 
 def test_by_group_splits_on_a_metadata_field() -> None:
     pairs = [
-        (Item(id="a", text="t", meta={"lang": "ur"}, predictions={"m": "p"}),
-         Judgement(item_id="a", label="p")),
-        (Item(id="b", text="t", meta={"lang": "en"}, predictions={"m": "p"}),
-         Judgement(item_id="b", label="q")),
+        (
+            Item(id="a", text="t", meta={"lang": "ur"}, predictions={"m": "p"}),
+            Judgement(item_id="a", label="p"),
+        ),
+        (
+            Item(id="b", text="t", meta={"lang": "en"}, predictions={"m": "p"}),
+            Judgement(item_id="b", label="q"),
+        ),
     ]
 
     cells = by_group(pairs, "m", "lang")

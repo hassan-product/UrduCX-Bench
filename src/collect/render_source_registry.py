@@ -95,9 +95,7 @@ def flatten_registry(registry: dict[str, Any]) -> list[dict[str, Any]]:
 
 def render_registry(registry: dict[str, Any]) -> str:
     """Return a self-contained, filterable registry approval page."""
-    rows_json = json.dumps(flatten_registry(registry), ensure_ascii=False).replace(
-        "<", "\\u003c"
-    )
+    rows_json = json.dumps(flatten_registry(registry), ensure_ascii=False).replace("<", "\\u003c")
     verified_at = str(registry.get("metadata_verified_at", "unknown"))
     return f"""<!doctype html>
 <html lang="en">
@@ -323,8 +321,7 @@ def main() -> None:
     atomic_write_text(args.output, render_registry(registry))
     rows = flatten_registry(registry)
     print(
-      f"Wrote {len(rows)} listings across {len(registry['products'])} products "
-      f"to {args.output}"
+        f"Wrote {len(rows)} listings across {len(registry['products'])} products to {args.output}"
     )
 
 

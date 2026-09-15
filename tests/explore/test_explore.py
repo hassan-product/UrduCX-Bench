@@ -37,11 +37,13 @@ def _review(rid: str, **kwargs: object) -> Review:
 
 
 def test_filters_combine_as_and_not_or() -> None:
-    corpus = Corpus([
-        _review("a", product="wallet_a", rating=1),
-        _review("b", product="wallet_b", rating=1),
-        _review("c", product="wallet_a", rating=5),
-    ])
+    corpus = Corpus(
+        [
+            _review("a", product="wallet_a", rating=1),
+            _review("b", product="wallet_b", rating=1),
+            _review("c", product="wallet_a", rating=5),
+        ]
+    )
 
     kept = corpus.filter(Filters(products={"wallet_a"}, ratings={1}))
 
@@ -49,10 +51,12 @@ def test_filters_combine_as_and_not_or() -> None:
 
 
 def test_several_keyword_tags_narrow_rather_than_widen() -> None:
-    corpus = Corpus([
-        _review("both", text="paisay kat gaye aur helpline jawab nahi deti"),
-        _review("one", text="paisay kat gaye"),
-    ])
+    corpus = Corpus(
+        [
+            _review("both", text="paisay kat gaye aur helpline jawab nahi deti"),
+            _review("one", text="paisay kat gaye"),
+        ]
+    )
 
     kept = corpus.filter(Filters(tags={"money_lost", "support"}))
 
@@ -60,10 +64,12 @@ def test_several_keyword_tags_narrow_rather_than_widen() -> None:
 
 
 def test_search_matches_urdu_script() -> None:
-    corpus = Corpus([
-        _review("ur", text="میرا بیلنس کٹ گیا"),
-        _review("en", text="my balance was deducted"),
-    ])
+    corpus = Corpus(
+        [
+            _review("ur", text="میرا بیلنس کٹ گیا"),
+            _review("en", text="my balance was deducted"),
+        ]
+    )
 
     assert [r.id for r in corpus.filter(Filters(search="بیلنس"))] == ["ur"]
 
@@ -100,8 +106,7 @@ def test_an_unknown_tag_matches_nothing_rather_than_everything() -> None:
 
 def test_a_thin_version_is_dropped_rather_than_ranked_first() -> None:
     reviews = [_review(f"bad{n}", version="9.9", rating=1) for n in range(5)]
-    reviews += [_review(f"ok{n}", version="1.0", rating=1 if n < 20 else 5)
-                for n in range(60)]
+    reviews += [_review(f"ok{n}", version="1.0", rating=1 if n < 20 else 5) for n in range(60)]
 
     rows = releases(reviews, minimum=40)
 
@@ -111,8 +116,7 @@ def test_a_thin_version_is_dropped_rather_than_ranked_first() -> None:
 
 
 def test_release_table_reports_the_interval_not_just_the_share() -> None:
-    reviews = [_review(f"r{n}", version="2.0", rating=1 if n < 30 else 5)
-               for n in range(60)]
+    reviews = [_review(f"r{n}", version="2.0", rating=1 if n < 30 else 5) for n in range(60)]
 
     row = releases(reviews, minimum=40)[0]
 

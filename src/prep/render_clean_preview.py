@@ -32,8 +32,7 @@ def load_cleaned(path: Path) -> list[dict[str, Any]]:
             record = json.loads(line)
             if tuple(record) != CLEAN_FIELDS:
                 raise ValueError(
-                    f"Unexpected schema in {path}:{line_number}; "
-                    f"expected {', '.join(CLEAN_FIELDS)}"
+                    f"Unexpected schema in {path}:{line_number}; expected {', '.join(CLEAN_FIELDS)}"
                 )
             records.append(record)
     if not records:

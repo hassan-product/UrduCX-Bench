@@ -46,7 +46,11 @@ def test_build_census_keeps_google_totals_distinct_from_apple_access(tmp_path: P
                         "confirmed": True,
                     }
                     for platform, app_id, url in (
-                        ("google_play", "pk.example", "https://play.google.com/store/apps/details?id=pk.example"),
+                        (
+                            "google_play",
+                            "pk.example",
+                            "https://play.google.com/store/apps/details?id=pk.example",
+                        ),
                         ("apple_app_store", "123", "https://apps.apple.com/pk/app/example/id123"),
                     )
                 ],

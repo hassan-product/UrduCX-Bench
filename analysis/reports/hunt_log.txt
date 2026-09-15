@@ -22,7 +22,7 @@ fake_payment_screenshot                 50     0    0.0%  feature_request_or_ux_
 scam_impersonation_report               50    18   36.0%  unauthorized_vas_deduction 11, balance_disappeared_u
 cash_out_agent_problem                  50     1    2.0%  account_blocked_frozen 13, feature_request_or_ux_com
 loan_repayment_dispute                  50    25   50.0%  information_request 7, unclassifiable 6, feature_req
-harassment_or_abuse_via_platform        19     3   15.8%  feature_request_or_ux_complaint 5, login_failure 2, 
+harassment_or_abuse_via_platform        19     3   15.8%  feature_request_or_ux_complaint 5, login_failure 2,
 sim_or_number_issue                     50     4    8.0%  feature_request_or_ux_complaint 16, unclassifiable 4
 account_compromised                     50    20   40.0%  unauthorized_vas_deduction 12, feature_request_or_ux
 bill_payment_not_reflected              50    11   22.0%  feature_request_or_ux_complaint 11, unclassifiable 8

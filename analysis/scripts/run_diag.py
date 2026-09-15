@@ -131,14 +131,10 @@ def label_one(
                 model=model,
                 max_tokens=400,
                 output_config={"effort": EFFORT},
-                system=[
-                    {"type": "text", "text": prompt, "cache_control": {"type": "ephemeral"}}
-                ],
+                system=[{"type": "text", "text": prompt, "cache_control": {"type": "ephemeral"}}],
                 messages=[{"role": "user", "content": text}],
             )
-            raw = "".join(
-                b.text for b in response.content if getattr(b, "type", None) == "text"
-            )
+            raw = "".join(b.text for b in response.content if getattr(b, "type", None) == "text")
             label = parse(raw)
             write_cached_label(CACHE_DIR, key, label)
             return {

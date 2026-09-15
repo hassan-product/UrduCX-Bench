@@ -72,9 +72,7 @@ def collect_listing_sample(
     """Persist one recent Google page and return non-user aggregate store metadata."""
     platform_app_id = str(listing["platform_app_id"])
     product_id = str(listing["product_id"])
-    metadata = with_retries(
-        lambda: app_fn(platform_app_id, lang="en", country="pk"), pacer=pacer
-    )
+    metadata = with_retries(lambda: app_fn(platform_app_id, lang="en", country="pk"), pacer=pacer)
     raw_reviews, _ = with_retries(
         lambda: reviews_fn(
             platform_app_id,
@@ -86,13 +84,7 @@ def collect_listing_sample(
         pacer=pacer,
     )
     page = [serialize_review(review, platform_app_id, product_id) for review in raw_reviews]
-    page_path = (
-        output_dir
-        / "google_play"
-        / product_id
-        / platform_app_id
-        / "page_000001.jsonl"
-    )
+    page_path = output_dir / "google_play" / product_id / platform_app_id / "page_000001.jsonl"
     write_page(page_path, page)
     print(f"{listing['display_name']} / Google: sampled {len(page)} recent reviews")
     return {
