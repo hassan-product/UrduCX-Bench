@@ -1,0 +1,20 @@
+Permutation test for an effect of language on accuracy
+  20,000 shuffles, statistic = max-min per-language accuracy
+
+  claude-haiku-4-5       spread  10.7 pts   p = 0.715   no significant effect
+  claude-opus-5          spread  13.9 pts   p = 0.483   no significant effect
+  claude-sonnet-5        spread  10.6 pts   p = 0.690   no significant effect
+
+What this design could have detected
+  baseline accuracy 60.9%, smallest language cell n=48
+  minimum detectable effect at 80% power: 27.9 percentage points
+
+  So the honest reading is: a script gap larger than about 28 points
+  would very likely have shown up, and did not. A gap smaller than that could
+  exist and this design would probably have missed it. The observed spreads
+  sit well inside that floor, so the null is a bound, not a proof of zero.
+
+    n= 50 per language -> detectable gap 27.3 pts
+    n=100 per language -> detectable gap 19.3 pts
+    n=200 per language -> detectable gap 13.7 pts
+    n=400 per language -> detectable gap  9.7 pts

@@ -1,0 +1,451 @@
+{
+  "schema_version": 1,
+  "authoring": {
+    "source": "human-authored workbook (maintainer)",
+    "machine_written_variants": 0,
+    "transferred": "2026-08-23",
+    "notes": "All 80 variants human-written. Machine changes limited to whitespace/bidi normalization, 4 stray-character removals, 3 maintainer-approved content edits, and 80 fact_span selections. See CHANGE_LOG.md."
+  },
+  "complaints": [
+    {
+      "complaint_id": "pilot-01",
+      "gold_intent": "unauthorized_vas_deduction",
+      "variants": {
+        "urdu_script": {
+          "text": "جاز ٹیونز سے ہر ہفتے ۲۰۰ کٹ جاتے ہین جبکہ مین نے ایک ماہ پہلے انسسکریب کر دیا تھا",
+          "fact_span": "ہر ہفتے ۲۰۰ کٹ جاتے ہین"
+        },
+        "roman_urdu": {
+          "text": "Jazz Tunes ke har hafte 200 rs kat jate he jab keh me ne 1 mah pehle unsuscribe kr dea tha",
+          "fact_span": "har hafte 200 rs kat jate he"
+        },
+        "code_switched": {
+          "text": "Jazz Tunes se ہر ہفتے میرے account se 200 rupees کٹ جاتے he jab ke me ne aik mah pehle unsuscribe kr dea tha",
+          "fact_span": "200 rupees کٹ جاتے he"
+        },
+        "english": {
+          "text": "Jazz Tunes deducts Rs 200 every week from my account although I unsubscribe it a month back",
+          "fact_span": "deducts Rs 200 every week"
+        }
+      }
+    },
+    {
+      "complaint_id": "pilot-02",
+      "gold_intent": "balance_disappeared_unexplained",
+      "variants": {
+        "urdu_script": {
+          "text": "آج میرے اکاؤنٹ ٣٠٠ روپے کٹ گے بگیر کسی میسج یا نوٹیفکیشن کے. میں نے کوئی سروس بھی ایکٹو نہیں کروائی ہوئی",
+          "fact_span": "٣٠٠ روپے کٹ گے بگیر کسی میسج یا نوٹیفکیشن کے"
+        },
+        "roman_urdu": {
+          "text": "aaj mere account he 300 rupee kat gae badger kisi message ya notification ke. Me ne koi service bhi actiate nahi ki hui.",
+          "fact_span": "300 rupee kat gae badger kisi message ya notification ke"
+        },
+        "code_switched": {
+          "text": "Aj mere account se 300 روپے کٹ گے بغیر کسی message ya notification ke. Me ne koi service be activate nahi ki hui.",
+          "fact_span": "300 روپے کٹ گے بغیر کسی message ya notification ke"
+        },
+        "english": {
+          "text": "Today, rupees 300 were deducted from my account without any warning notification or message. I haven’t activated any service as well.",
+          "fact_span": "rupees 300 were deducted from my account without any warning notification or message"
+        }
+      }
+    },
+    {
+      "complaint_id": "pilot-03",
+      "gold_intent": "package_not_activated",
+      "variants": {
+        "urdu_script": {
+          "text": "میں نے ویکلی سپر میکس لگایا لیکن ٦١٠ کٹ ب گے اور پیکج بھی نہیں لگا",
+          "fact_span": "٦١٠ کٹ ب گے اور پیکج بھی نہیں لگا"
+        },
+        "roman_urdu": {
+          "text": "me ne 610 ka weekly super max package lagae, pese kat gae but package nahi laga",
+          "fact_span": "610 ka weekly super max package lagae, pese kat gae but package nahi laga"
+        },
+        "code_switched": {
+          "text": "میں نے weekly super max package lagaea, 610 kat gae lekin پیسے کٹ gae or package b ni laga",
+          "fact_span": "610 kat gae lekin پیسے کٹ gae or package b ni laga"
+        },
+        "english": {
+          "text": "I subscribed Weekly Super Max Package for 610, money was deducted but package was not activated",
+          "fact_span": "Weekly Super Max Package for 610, money was deducted but package was not activated"
+        }
+      }
+    },
+    {
+      "complaint_id": "pilot-04",
+      "gold_intent": "overcharging_dispute",
+      "variants": {
+        "urdu_script": {
+          "text": "زونگ کے مس کال الرٹس کی پرائس ٢ روپے لیکن میرے روز کے ٦ روپے کٹ رہے ہیں",
+          "fact_span": "٢ روپے لیکن میرے روز کے ٦ روپے کٹ رہے ہیں"
+        },
+        "roman_urdu": {
+          "text": "Zong ke Miss Call Alerts ki price 2 rupees + tax/day he but mere roz ke 6 rupee kat rahe he",
+          "fact_span": "2 rupees + tax/day he but mere roz ke 6 rupee kat rahe he"
+        },
+        "code_switched": {
+          "text": "Zong ke Miss Call Alerts ki price ٢ روپیہ روز ہے لیکن میرے 6 rupee kat rahe hen",
+          "fact_span": "٢ روپیہ روز ہے لیکن میرے 6 rupee kat rahe hen"
+        },
+        "english": {
+          "text": "I subscribed for Zong Missed Calls alerts for rupees 2+tax daily but 6 rupees are being deducted daily",
+          "fact_span": "rupees 2+tax daily but 6 rupees are being deducted daily"
+        }
+      }
+    },
+    {
+      "complaint_id": "pilot-05",
+      "gold_intent": "refund_request",
+      "variants": {
+        "urdu_script": {
+          "text": "میں نے جاز کش سے ٣٠٠٠ ٹرانسفر کیے ، پیسے کٹ گے پر ملے نہیں. میرے پیسے واپس کیے جایں",
+          "fact_span": "٣٠٠٠ ٹرانسفر کیے ، پیسے کٹ گے پر ملے نہیں"
+        },
+        "roman_urdu": {
+          "text": "Me ne Jazz Cash se 3000 transfer kea, pese kat gae but receive nahi hue. Mere pese wapis kea jae.",
+          "fact_span": "3000 transfer kea, pese kat gae but receive nahi hue"
+        },
+        "code_switched": {
+          "text": "Me ne Jazz Cash se 3000 transfer ke, پیسے کٹ گئے per recieve nahi hue. Mere pese wapis karen",
+          "fact_span": "3000 transfer ke, پیسے کٹ گئے per recieve nahi hue"
+        },
+        "english": {
+          "text": "I transferred 3000 from Jazz Cash, the money was deducted but not recieved. Return my money",
+          "fact_span": "3000 from Jazz Cash, the money was deducted but not recieved"
+        }
+      }
+    },
+    {
+      "complaint_id": "pilot-06",
+      "gold_intent": "login_failure",
+      "variants": {
+        "urdu_script": {
+          "text": "مین جاز کیش ایپ می لوگن نہیں کر پا رہا ٹھیک پاسورڈ دینے کے باوجود ۔ تین دفعہ پاسورڈ دل چکا ہو",
+          "fact_span": "تین دفعہ پاسورڈ دل چکا ہو"
+        },
+        "roman_urdu": {
+          "text": "me jazz cash app me login nahi kr pa raha sahi password ke bawjood. teen dafa try kr chuka hu.",
+          "fact_span": "teen dafa try kr chuka hu"
+        },
+        "code_switched": {
+          "text": "Jazz Cash app me۳ دفعہ لوگن کی ٹرائی karc chuka hu per nahi hu raha theek password ke bawjood",
+          "fact_span": "۳ دفعہ لوگن کی ٹرائی karc chuka hu"
+        },
+        "english": {
+          "text": "Have tried thrice to login into the jazz cash application but have failed despite correct password",
+          "fact_span": "tried thrice to login into the jazz cash application but have failed despite correct password"
+        }
+      }
+    },
+    {
+      "complaint_id": "pilot-07",
+      "gold_intent": "otp_not_received",
+      "variants": {
+        "urdu_script": {
+          "text": "otp ریسیو نہیں ہوا ۳۰ minuets مین ۳ دفاع ٹرائی کر چکا ہوں",
+          "fact_span": "۳۰ minuets مین ۳ دفاع ٹرائی کر چکا ہوں"
+        },
+        "roman_urdu": {
+          "text": "30 minutes me 3 dafa try kr chuka hu otp recieve nahi hua",
+          "fact_span": "30 minutes me 3 dafa try kr chuka hu"
+        },
+        "code_switched": {
+          "text": "otp ke lea ۳۰ منٹس مین 3 dafa try kr chuka hu nahi recieve hua",
+          "fact_span": "۳۰ منٹس مین 3 dafa try kr chuka hu"
+        },
+        "english": {
+          "text": "Have tried 3 times for otp in 30 mins but haven’t recieved yet",
+          "fact_span": "tried 3 times for otp in 30 mins"
+        }
+      }
+    },
+    {
+      "complaint_id": "pilot-08",
+      "gold_intent": "kyc_verification_stuck",
+      "variants": {
+        "urdu_script": {
+          "text": "میرے id کارڈ کی ویریفکیشن ۱ ہفتے سے پینڈنگ ہے کوئی اپڈیٹ بھی نہیں ملی",
+          "fact_span": "۱ ہفتے سے پینڈنگ ہے"
+        },
+        "roman_urdu": {
+          "text": "mere id card ki verification aik week se oending he koi update b nahi mili app me",
+          "fact_span": "aik week se oending he"
+        },
+        "code_switched": {
+          "text": "میرے شناختی کارڈ ki verification aik week se pending he koi update bhi ni mili",
+          "fact_span": "aik week se pending he"
+        },
+        "english": {
+          "text": "The ID card verification for my app has been pending for 1 week and haven’t recieved any updates too",
+          "fact_span": "pending for 1 week"
+        }
+      }
+    },
+    {
+      "complaint_id": "pilot-09",
+      "gold_intent": "account_blocked_frozen",
+      "variants": {
+        "urdu_script": {
+          "text": "میرا UPAISA اکاؤنٹ جس مے ١٠٠٠٠ روپے ہیں کل ٦ بجے شام سے بند ہے",
+          "fact_span": "١٠٠٠٠ روپے ہیں کل ٦ بجے شام سے بند ہے"
+        },
+        "roman_urdu": {
+          "text": "mera upaisa account jis me 10000 hen, kal 6 baje sham se band he",
+          "fact_span": "10000 hen, kal 6 baje sham se band he"
+        },
+        "code_switched": {
+          "text": "میرا UPAISA اکاؤنٹ جس میں 10,000 he kal 6 baje sham se band he",
+          "fact_span": "10,000 he kal 6 baje sham se band he"
+        },
+        "english": {
+          "text": "My Upaisa account which has 10000 in it has been blocked since 6PM in the evening.",
+          "fact_span": "has 10000 in it has been blocked since 6PM"
+        }
+      }
+    },
+    {
+      "complaint_id": "pilot-10",
+      "gold_intent": "transfer_failed_money_deducted",
+      "variants": {
+        "urdu_script": {
+          "text": "کل شام ٥ بجے شام کو ممیں نے اپنے دوست کو ١٢٠٠٠ بھجے زندگی اپپ سے پر میرے اکاؤنٹ سے پیسے کٹ گے ور دوست کو نہیں ملے . ٹرانزیکشن نمبر TXN ٥١٢ ہے",
+          "fact_span": "ٹرانزیکشن نمبر TXN ٥١٢ ہے"
+        },
+        "roman_urdu": {
+          "text": "Kal 5 baje sham ko men ne zindagi app se apne dost ko 12000 send kea, pese mere account se deduct hu gae per mere dost ko nahi mile. Transaction ID is TXN 512",
+          "fact_span": "Transaction ID is TXN 512"
+        },
+        "code_switched": {
+          "text": "کل شام ٥ بجے me ne Zindagi app se apne dost ko 12000 send kea, mere account se pese kat gae per mere dost ko receive nahi hue. Transaction ID TXN 512 he",
+          "fact_span": "Transaction ID TXN 512 he"
+        },
+        "english": {
+          "text": "Yesterday, at 5 PM, I sent 12000 rupees to my friend through the Zindagi app, the money was deducted but my friend never received the money. The transaction ID is TXN 512.",
+          "fact_span": "The transaction ID is TXN 512"
+        }
+      }
+    },
+    {
+      "complaint_id": "pilot-11",
+      "gold_intent": "transfer_to_wrong_recipient",
+      "variants": {
+        "urdu_script": {
+          "text": "نمبر غلط ٹائپ ہونے سے میرے ٣٠٠٠ کسی ور نمبر پر ٹرانسفر ہو گے ہیں",
+          "fact_span": "٣٠٠٠ کسی ور نمبر پر ٹرانسفر ہو گے ہیں"
+        },
+        "roman_urdu": {
+          "text": "Muj se galt number type hne se 3000 tupees kisi or number per transfer hu gae hen",
+          "fact_span": "3000 tupees kisi or number per transfer hu gae hen"
+        },
+        "code_switched": {
+          "text": "نمبر غلط type hne se mere 3000 rupees kisi or umber per transfer hu gae hen",
+          "fact_span": "3000 rupees kisi or umber per transfer hu gae hen"
+        },
+        "english": {
+          "text": "I typed a wrong number and transferred 3000 rupees",
+          "fact_span": "transferred 3000 rupees"
+        }
+      }
+    },
+    {
+      "complaint_id": "pilot-12",
+      "gold_intent": "cash_out_agent_problem",
+      "variants": {
+        "urdu_script": {
+          "text": "ممیں نے ایجنٹ سے ٤ بجے شام کو٧٠٠٠ کش اوٹ کروایا میرے پیسے کٹ گے لیکن ایجنٹ نے مجے پیسے نہیں دیے",
+          "fact_span": "٤ بجے شام کو٧٠٠٠ کش اوٹ کروایا"
+        },
+        "roman_urdu": {
+          "text": "Me ne agent se sham 4 baje 7000 rupees cash out karwae, pese kat gae but wu mje pese nahi de raha",
+          "fact_span": "sham 4 baje 7000 rupees cash out karwae"
+        },
+        "code_switched": {
+          "text": "ممیں نے ایجنٹ سے sham 4 baje 7000 cash out krwae, pese kat gae lekin wu maje pese nahi de raha",
+          "fact_span": "sham 4 baje 7000 cash out krwae"
+        },
+        "english": {
+          "text": "I cashed out 7000 rupees from the agent at 4PM, the money was deducted but the agent is not paying me the money",
+          "fact_span": "cashed out 7000 rupees from the agent at 4PM"
+        }
+      }
+    },
+    {
+      "complaint_id": "pilot-13",
+      "gold_intent": "bill_payment_not_reflected",
+      "variants": {
+        "urdu_script": {
+          "text": "میں نے آج شام ٦ بجے اپنا ٩٠٠٠ کا بجلی کا بل اپپ سے ادا کیا. پیسے کٹ گے لیکن واپڈا کی ویب سائٹ پر ادا شدہ بل نظر نہیں ا رہا",
+          "fact_span": "شام ٦ بجے اپنا ٩٠٠٠ کا بجلی کا بل اپپ سے ادا کیا"
+        },
+        "roman_urdu": {
+          "text": "Aaj me ne apni app se bijli ka 9000 rupe ka bill sham 6 baje pay kea, app se pese kat gae but wapda ki website per paid bill nahi show hu raha",
+          "fact_span": "bijli ka 9000 rupe ka bill sham 6 baje pay kea"
+        },
+        "code_switched": {
+          "text": "ممیں نے آج sham 6 baje app se wapda se 9000 ka bijli ka bill pay kea. app se pese kat gae lekin wapda ki website per bill paid nahi sho hu raha",
+          "fact_span": "sham 6 baje app se wapda se 9000 ka bijli ka bill pay kea"
+        },
+        "english": {
+          "text": "I paid my 9000 rupees electricity bill from the app at 6 PM, the money was deducted but the wapda website doesn’t show the paid bill",
+          "fact_span": "9000 rupees electricity bill from the app at 6 PM"
+        }
+      }
+    },
+    {
+      "complaint_id": "pilot-14",
+      "gold_intent": "loan_repayment_dispute",
+      "variants": {
+        "urdu_script": {
+          "text": "جب میں نے اپنی اپپ سے لوں واپس کیا تو اصل رکم ٤٠٠٠ کے ساتھ ٣٠٠ اضافی بے کٹ گے",
+          "fact_span": "اصل رکم ٤٠٠٠ کے ساتھ ٣٠٠ اضافی بے کٹ گے"
+        },
+        "roman_urdu": {
+          "text": "Jab me ne apni app se 4000 loan ki rakam wapis ki to 300 azafi rupees b kat gae",
+          "fact_span": "4000 loan ki rakam wapis ki to 300 azafi rupees b kat gae"
+        },
+        "code_switched": {
+          "text": "جب مے نے اپنی اپپ سے ادھار lea gae 4000 wapis kea tu 300 azafi be kat gae",
+          "fact_span": "4000 wapis kea tu 300 azafi be kat gae"
+        },
+        "english": {
+          "text": "When I repaid 4000 loan amount from my app, 300 additional rupees were also deducted",
+          "fact_span": "4000 loan amount from my app, 300 additional rupees were also deducted"
+        }
+      }
+    },
+    {
+      "complaint_id": "pilot-15",
+      "gold_intent": "scam_impersonation_report",
+      "variants": {
+        "urdu_script": {
+          "text": "آج ایک بندے نے ٣ بجے دوپہر کو فون کیا مجھے ور اپنے اپ کو جاز کا نمائندہ بول کر مجھ سے OTP اور PIN منگا.",
+          "fact_span": "٣ بجے دوپہر کو فون کیا مجھے ور اپنے اپ کو جاز کا نمائندہ بول کر مجھ سے OTP اور PIN منگا"
+        },
+        "roman_urdu": {
+          "text": "Aaj 3 baje duphear ko aik bande ne phone per muj se Jazz ka numainda ban kar OTP or PIN managa",
+          "fact_span": "3 baje duphear ko aik bande ne phone per muj se Jazz ka numainda ban kar OTP or PIN managa"
+        },
+        "code_switched": {
+          "text": "Ajj 3 baje dupehar ko ایک بندے نے فون پر اپنے آپ کو جاز کا نمائندہ بتا کر مجھ سے OTP or PIN managa",
+          "fact_span": "3 baje dupehar ko ایک بندے نے فون پر اپنے آپ کو جاز کا نمائندہ بتا کر مجھ سے OTP or PIN managa"
+        },
+        "english": {
+          "text": "Someone called me today around 3 PM claiming to be a Jazz representative and asked for OTP and PIN",
+          "fact_span": "around 3 PM claiming to be a Jazz representative and asked for OTP and PIN"
+        }
+      }
+    },
+    {
+      "complaint_id": "pilot-16",
+      "gold_intent": "fake_payment_screenshot",
+      "variants": {
+        "urdu_script": {
+          "text": "ایک خریدار نے مجھے پیمنٹ کا جعلی سکرین شوت بھجیا ٢٠٠٠٠ کا میں نے سامان بھیج دیا . میرا آرڈر نمبر ORD ٩١ ہے",
+          "fact_span": "میرا آرڈر نمبر ORD ٩١ ہے"
+        },
+        "roman_urdu": {
+          "text": "Aik buyer ne muje fake screen shot bhej kr mugh se 20000 le lea or me ne saman bhej dea. Order number ORD 91 he",
+          "fact_span": "Order number ORD 91 he"
+        },
+        "code_switched": {
+          "text": "ایک خریدار نے muje jali screenshot bheja 20,000 ki payment ka, me ne saman bhej dea. Mera order number ORD91 he",
+          "fact_span": "Mera order number ORD91 he"
+        },
+        "english": {
+          "text": "Some buyer sent me a fake screenshot for 20,000 and I sold the goods. My order number is ORD 91",
+          "fact_span": "My order number is ORD 91"
+        }
+      }
+    },
+    {
+      "complaint_id": "pilot-17",
+      "gold_intent": "account_compromised",
+      "variants": {
+        "urdu_script": {
+          "text": "میرے جاز کش اکاؤنٹ سے ٨٠٠٠ روپے نکال لیے ہیں کسی نے ٢٠ اگست کو. براۓ مہربانی پیسے واپس کیا جایں",
+          "fact_span": "٨٠٠٠ روپے نکال لیے ہیں کسی نے ٢٠ اگست کو"
+        },
+        "roman_urdu": {
+          "text": "Mere jazz cash account se kisi ne 8000 rupe niakl lea 20 August ko, please wapis bhej den",
+          "fact_span": "kisi ne 8000 rupe niakl lea 20 August ko"
+        },
+        "code_switched": {
+          "text": "میرے جاز کش اکاؤنٹ se kisi ne 20 August ko 8000 nikal lea he, please wapis kr de",
+          "fact_span": "kisi ne 20 August ko 8000 nikal lea he"
+        },
+        "english": {
+          "text": "Someone stole 8000 rupees from my Jazz Cash Account on 20 august, please return them",
+          "fact_span": "stole 8000 rupees from my Jazz Cash Account on 20 august"
+        }
+      }
+    },
+    {
+      "complaint_id": "pilot-18",
+      "gold_intent": "network_coverage_complaint",
+      "variants": {
+        "urdu_script": {
+          "text": "ماڈل ٹاؤن لاہور میں کل سے سگنل نہیں ا رہے ور کال ڈراپ ہو رہی ہے",
+          "fact_span": "ماڈل ٹاؤن لاہور میں کل سے سگنل نہیں ا رہے"
+        },
+        "roman_urdu": {
+          "text": "Model Town Lahore me kal se signal nahi a rahe or call drop hu rahi he",
+          "fact_span": "Model Town Lahore me kal se signal nahi a rahe"
+        },
+        "code_switched": {
+          "text": "ماڈل ٹاؤن لاہور میں kal se signals nahi a rahe or calls drop hu rahi hen",
+          "fact_span": "ماڈل ٹاؤن لاہور میں kal se signals nahi a rahe"
+        },
+        "english": {
+          "text": "I have been having issues with the Signals in Model Town Lahore since yesterday and calls have been dropping",
+          "fact_span": "Signals in Model Town Lahore since yesterday"
+        }
+      }
+    },
+    {
+      "complaint_id": "pilot-19",
+      "gold_intent": "data_speed_complaint",
+      "variants": {
+        "urdu_script": {
+          "text": "4g ہونے کے باجوود بہت سلوو انٹرنیٹ ا رہا ہے ٠.٥ mbps",
+          "fact_span": "4g ہونے کے باجوود بہت سلوو انٹرنیٹ ا رہا ہے ٠.٥ mbps"
+        },
+        "roman_urdu": {
+          "text": "4g speed hne ke bajwood 0.5 mbs ki speed per net chal raha he.",
+          "fact_span": "4g speed hne ke bajwood 0.5 mbs ki speed per net chal raha he"
+        },
+        "code_switched": {
+          "text": "4g speed hne ke bajwood 0.5 mbs کی سپیڈ پر انٹرنیٹ چل رہا ہے",
+          "fact_span": "4g speed hne ke bajwood 0.5 mbs کی سپیڈ پر انٹرنیٹ چل رہا ہے"
+        },
+        "english": {
+          "text": "Despite having a 4g connection, the internet is running at 0.5 mbps speed",
+          "fact_span": "4g connection, the internet is running at 0.5 mbps speed"
+        }
+      }
+    },
+    {
+      "complaint_id": "pilot-20",
+      "gold_intent": "service_outage_report",
+      "variants": {
+        "urdu_script": {
+          "text": "پچھلے ۳ گھنٹے سے ufone ایپ ڈاؤن ہے جوہر ٹاؤن لاہور مین",
+          "fact_span": "پچھلے ۳ گھنٹے سے ufone ایپ ڈاؤن ہے"
+        },
+        "roman_urdu": {
+          "text": "Johar Town Lahore me pichle 3 hours se Ufone app down he",
+          "fact_span": "pichle 3 hours se Ufone app down he"
+        },
+        "code_switched": {
+          "text": "Johar Town Lahore me pichle 3 گھنٹے سے ufone اپپ نہیں چل رہی",
+          "fact_span": "pichle 3 گھنٹے سے ufone اپپ نہیں چل رہی"
+        },
+        "english": {
+          "text": "The Ufone App has been down in Johar Town Lahore for last 3 hours",
+          "fact_span": "Ufone App has been down in Johar Town Lahore for last 3 hours"
+        }
+      }
+    }
+  ]
+}

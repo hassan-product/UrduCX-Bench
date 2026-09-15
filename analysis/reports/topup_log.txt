@@ -1,0 +1,17 @@
+  refund_request                     have 10, drawing  96 more
+  bill_payment_not_reflected         have 11, drawing  72 more
+  scam_impersonation_report          have 18, drawing  26 more
+  account_compromised                have 20, drawing  21 more
+  loan_repayment_dispute             have 25, drawing  10 more
+
+scrubbed 225; redactions: {}
+
+intent                              before  after   status
+----------------------------------------------------------------------
+refund_request                          10     47   REACHED >=30
+bill_payment_not_reflected              11     25   short by 5
+scam_impersonation_report               18     54   REACHED >=30
+account_compromised                     20     48   REACHED >=30
+loan_repayment_dispute                  25     40   REACHED >=30
+
+labelled 224 of 225 (1 failed) -> spike/phase3_diag/topup_results.jsonl

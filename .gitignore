@@ -227,3 +227,7 @@ spike/
 .DS_Store
 PROJECT_CONTEXT.md
 PROJECT_CONTEXT_V2.md
+
+# Working documents: never public, never committed
+PROGRESS_LOG.md
+paper/OUTLINE.md

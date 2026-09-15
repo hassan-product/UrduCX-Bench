@@ -1,0 +1,93 @@
+Answered by both models: 490 of 500
+  claude-sonnet-5      answered 492
+  claude-opus-5        answered 498
+
+1a. UNCLASSIFIABLE — upper bound (either model)
+  overall           33.7%  [29.6, 38.0]  n=490
+  urdu_script       43.1%  [34.7, 51.9]  n=123
+  roman_urdu        25.0%  [18.1, 33.4]  n=120
+  code_switched     35.0%  [27.1, 43.7]  n=123
+  english           31.5%  [23.9, 40.1]  n=124
+
+1b. UNCLASSIFIABLE — lower bound (both models)
+  overall           26.7%  [23.0, 30.8]  n=490
+  urdu_script       33.3%  [25.6, 42.1]  n=123
+  roman_urdu        19.2%  [13.1, 27.1]  n=120
+  code_switched     26.8%  [19.8, 35.3]  n=123
+  english           27.4%  [20.3, 35.9]  n=124
+
+2. MULTI-INTENT    (Opus set a secondary intent)
+  overall           11.8%  [ 9.3, 15.0]  n=490
+  urdu_script       11.4%  [ 6.9, 18.2]  n=123
+  roman_urdu        15.8%  [10.4, 23.4]  n=120
+  code_switched     11.4%  [ 6.9, 18.2]  n=123
+  english            8.9%  [ 5.0, 15.2]  n=124
+
+3. MODEL AGREEMENT (Sonnet 5 vs Opus 5, primary intent)
+  overall           79.6%  [75.8, 82.9]  n=490
+  urdu_script       78.0%  [69.9, 84.5]  n=123
+  roman_urdu        75.0%  [66.6, 81.9]  n=120
+  code_switched     85.4%  [78.1, 90.5]  n=123
+  english           79.8%  [71.9, 86.0]  n=124
+
+  Cohen's kappa (overall): 0.758
+    urdu_script      0.721
+    roman_urdu       0.719
+    code_switched    0.816
+    english          0.764
+
+4. REFUND REQUESTED (orthogonal v2 flag)
+  overall            4.3%  [ 2.8,  6.5]  n=490
+  urdu_script        2.4%  [ 0.8,  6.9]  n=123
+  roman_urdu         6.7%  [ 3.4, 12.6]  n=120
+  code_switched      2.4%  [ 0.8,  6.9]  n=123
+  english            5.6%  [ 2.8, 11.2]  n=124
+
+5. SEVERITY DISTRIBUTION (Opus 5)
+  informational           160   32.7%
+  financial_loss          122   24.9%
+  service_disruption      111   22.7%
+  friction                 97   19.8%
+
+6. REGEX SEVERITY PROXY vs LABELLED financial_loss
+  proxy+ & financial_loss :   87
+  proxy+ & not            :   37
+  proxy- & financial_loss :   35
+  proxy- & not            :  331
+  precision 70.2%   (of flagged, truly financial loss)
+  recall    71.3%   (of true financial loss, flagged)
+
+7. THE PRAISE CONFOUND — unclassifiable by star rating (Opus 5)
+   The taxonomy covers complaints; 4-5 star praise has no intent to match.
+  1 star   13.1%  [ 9.3, 18.1]  n=222
+  2 star   13.2%  [ 6.5, 24.8]  n=53
+  3 star   21.6%  [11.4, 37.2]  n=37
+  4 star   51.2%  [36.5, 65.7]  n=41
+  5 star   63.5%  [55.2, 71.1]  n=137
+
+8. COMPLAINTS ONLY (rating <= 2) — n=275
+  unclassifiable (Opus)       13.1%  [ 9.6, 17.6]
+  unclassifiable (both)        6.9%  [ 4.5, 10.5]
+  model agreement             74.9%  [69.5, 79.7]
+
+9. INTENT COVERAGE (Opus 5) — 20 distinct labels used
+  unclassifiable                        152
+  feature_request_or_ux_complaint       112
+  package_not_activated                  36
+  transfer_failed_money_deducted         26
+  balance_disappeared_unexplained        25
+  login_failure                          19
+  unauthorized_vas_deduction             19
+  network_coverage_complaint             18
+  account_blocked_frozen                 18
+  service_outage_report                  14
+  data_speed_complaint                   11
+  kyc_verification_stuck                 10
+  overcharging_dispute                    7
+  bill_payment_not_reflected              6
+  account_compromised                     4
+  information_request                     4
+  sim_or_number_issue                     4
+  refund_request                          3
+  loan_repayment_dispute                  1
+  cash_out_agent_problem                  1

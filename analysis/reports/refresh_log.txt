@@ -1,0 +1,20 @@
+SIMOSA                   +  531 new (4 pages, caught_up)
+JazzCash                 + 1127 new (7 pages, caught_up)
+Easypaisa                + 1563 new (9 pages, caught_up)
+My Zong                  +  542 new (4 pages, caught_up)
+UPTCL / Ufone            +  728 new (5 pages, caught_up)
+My Telenor               +  405 new (3 pages, caught_up)
+UPaisa                   +  109 new (2 pages, caught_up)
+DOST                     +    4 new (1 pages, caught_up)
+SadaPay                  +  234 new (2 pages, caught_up)
+NayaPay                  +  222 new (2 pages, caught_up)
+Zindigi                  +   62 new (1 pages, caught_up)
+ROX                      +    0 new (1 pages, caught_up)
+Jazz Business World      +    1 new (1 pages, caught_up)
+JazzCash Business        +  200 new (2 pages, caught_up)
+JazzCash Retailer        +    0 new (1 pages, caught_up)
+FikrFree                 +    6 new (1 pages, caught_up)
+Tamasha                  +   48 new (1 pages, caught_up)
+
+5,782 new reviews in 61s
+Written under data/raw/refresh/<date>/ — run `validate_raw` before merging.

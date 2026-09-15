@@ -1,0 +1,11 @@
+500 records, taxonomy v2
+
+=== claude-sonnet-5 — prompt 15,080 chars ===
+  {'ok': 486, 'cached': 6, 'failed': 0, 'unparseable': 8}
+  uncached in 49,911 | cache write 0 | cache read 2,484,918 | out 54,052
+  spend $1.1373 -> spike/phase3_diag/diag_claude-sonnet-5.jsonl
+
+=== claude-opus-5 — prompt 15,080 chars ===
+  {'ok': 492, 'cached': 6, 'failed': 0, 'unparseable': 2}
+  uncached in 50,687 | cache write 0 | cache read 2,515,596 | out 69,794
+  spend $3.2561 -> spike/phase3_diag/diag_claude-opus-5.jsonl

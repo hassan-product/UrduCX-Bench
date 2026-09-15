@@ -1,0 +1,46 @@
+corpus 54,519 | already labelled 500
+  otp_not_received                      50 candidates
+  transfer_to_wrong_recipient           50 candidates
+  fake_payment_screenshot               50 candidates
+  scam_impersonation_report             50 candidates
+  cash_out_agent_problem                50 candidates
+  loan_repayment_dispute                50 candidates
+  harassment_or_abuse_via_platform      19 candidates
+  sim_or_number_issue                   50 candidates
+  account_compromised                   50 candidates
+  bill_payment_not_reflected            50 candidates
+  information_request                   50 candidates
+  refund_request                        50 candidates
+
+scrubbed 569 candidates; redactions: {'name': 1}
+
+intent hunted                         cand  hits   yield  top confusions
+----------------------------------------------------------------------------------------------------
+otp_not_received                        50    45   90.0%  login_failure 2, account_compromised 1, feature_requ
+transfer_to_wrong_recipient             49     3    6.1%  unclassifiable 16, feature_request_or_ux_complaint 7
+fake_payment_screenshot                 50     0    0.0%  feature_request_or_ux_complaint 14, unclassifiable 7
+scam_impersonation_report               50    18   36.0%  unauthorized_vas_deduction 11, balance_disappeared_u
+cash_out_agent_problem                  50     1    2.0%  account_blocked_frozen 13, feature_request_or_ux_com
+loan_repayment_dispute                  50    25   50.0%  information_request 7, unclassifiable 6, feature_req
+harassment_or_abuse_via_platform        19     3   15.8%  feature_request_or_ux_complaint 5, login_failure 2, 
+sim_or_number_issue                     50     4    8.0%  feature_request_or_ux_complaint 16, unclassifiable 4
+account_compromised                     50    20   40.0%  unauthorized_vas_deduction 12, feature_request_or_ux
+bill_payment_not_reflected              50    11   22.0%  feature_request_or_ux_complaint 11, unclassifiable 8
+information_request                     50     4    8.0%  feature_request_or_ux_complaint 19, package_not_acti
+refund_request                          50    10   20.0%  unauthorized_vas_deduction 7, transfer_failed_money_
+
+VERDICT (evidence only - the taxonomy call is the maintainer's)
+  fake_payment_screenshot                0 found  ABSENT — no example found in 54,519 reviews
+  cash_out_agent_problem                 1 found  VESTIGIAL — real but too rare to reach 30 from this corpus
+  transfer_to_wrong_recipient            3 found  VESTIGIAL — real but too rare to reach 30 from this corpus
+  harassment_or_abuse_via_platform       3 found  VESTIGIAL — real but too rare to reach 30 from this corpus
+  sim_or_number_issue                    4 found  VESTIGIAL — real but too rare to reach 30 from this corpus
+  information_request                    4 found  VESTIGIAL — real but too rare to reach 30 from this corpus
+  refund_request                        10 found  VIABLE — extrapolates to ~11k-scale supply
+  bill_payment_not_reflected            11 found  VIABLE — extrapolates to ~12k-scale supply
+  scam_impersonation_report             18 found  VIABLE — extrapolates to ~20k-scale supply
+  account_compromised                   20 found  VIABLE — extrapolates to ~22k-scale supply
+  loan_repayment_dispute                25 found  VIABLE — extrapolates to ~27k-scale supply
+  otp_not_received                      45 found  VIABLE — extrapolates to ~49k-scale supply
+
+labelled 568 of 569 (1 failed) -> spike/phase3_diag/hunt_results.jsonl

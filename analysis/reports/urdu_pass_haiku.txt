@@ -1,0 +1,15 @@
+drew 239 reviews (length-matched to the Urdu-script profile)
+  urdu_script       60   {'very_long': 19, 'medium': 13, 'short': 9, 'long': 19}
+  roman_urdu        60   {'long': 19, 'short': 9, 'very_long': 19, 'medium': 13}
+  code_switched     59   {'very_long': 19, 'short': 8, 'long': 19, 'medium': 13}
+  english           60   {'medium': 13, 'short': 9, 'very_long': 19, 'long': 19}
+
+labelling with both models...
+
+wrote 239 labelled items to spike/phase3_diag/urdu_pass_worklist.jsonl
+
+model agreement before any human judgement (a free preview):
+  urdu_script       31/60  =  51.7%
+  roman_urdu        35/60  =  58.3%
+  code_switched     31/59  =  52.5%
+  english           37/60  =  61.7%

@@ -17,7 +17,7 @@ a 34-point overstatement, because questions you write yourself are the questions
 already know how to answer.
 
 The obvious alternative is to run two models and trust them where they agree. On the
-same data, **every model agreed with the others and all were wrong 22% of the time**.
+same data, **every model agreed with the others and all were wrong 31% of the time**.
 Agreement looks like confidence and isn't.
 
 The only method that worked was a person reading items and deciding, without seeing the

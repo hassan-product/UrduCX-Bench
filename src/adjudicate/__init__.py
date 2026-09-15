@@ -5,9 +5,9 @@ domain-agnostic: it takes a JSONL of items with optional model predictions, coll
 human judgements under a protocol designed to keep them independent, and scores the
 models against them.
 
-Distinct from `src.eval`, which the project plan reserves for the model-running harness
-(provider adapters, prompt templates, per-task scoring). This package is about the
-human side: what the correct answer was, and how confidently that can be claimed.
+The model-running side lives in `src.pilot` (provider adapters, fixed prompts, cached
+replies). This package is about the human side: what the correct answer was, and how
+confidently that can be claimed.
 
 The protocol matters more than the code. Three properties are enforced rather than
 suggested, because each one, left to discipline, quietly stops holding:

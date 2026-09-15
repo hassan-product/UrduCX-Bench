@@ -1,0 +1,51 @@
+Urdu pass: 239 labelled, 204 judged by hand
+  (22 excluded: judged with model answers visible)
+  (13 excluded: skipped, no answer given)
+
+MODEL-vs-MODEL AGREEMENT (no human needed)
+  urdu_script       31/60   51.7%  [39.3, 63.8]
+  roman_urdu        35/60   58.3%  [45.7, 69.9]
+  code_switched     31/59   52.5%  [40.0, 64.7]
+  english           37/60   61.7%  [49.0, 72.9]
+
+ACCURACY AGAINST HUMAN GOLD
+
+  claude-sonnet-5
+    urdu_script       30/50   60.0%  [46.2, 72.4]
+    roman_urdu        36/51   70.6%  [57.0, 81.3]
+    code_switched     37/55   67.3%  [54.1, 78.2]
+    english           30/48   62.5%  [48.4, 74.8]
+    spread 10.6 pts   best roman_urdu, worst urdu_script
+
+  claude-opus-5
+    urdu_script       33/50   66.0%  [52.2, 77.6]
+    roman_urdu        33/51   64.7%  [51.0, 76.4]
+    code_switched     35/55   63.6%  [50.4, 75.1]
+    english           25/48   52.1%  [38.3, 65.5]
+    spread 13.9 pts   best urdu_script, worst english
+
+  claude-haiku-4-5
+    urdu_script       28/50   56.0%  [42.3, 68.8]
+    roman_urdu        32/51   62.7%  [49.0, 74.7]
+    code_switched     29/55   52.7%  [39.8, 65.3]
+    english           25/48   52.1%  [38.3, 65.5]
+    spread 10.7 pts   best roman_urdu, worst english
+
+IS THERE A SCRIPT GAP?
+  A gap large enough to matter operationally would show as a wide spread
+  with non-overlapping intervals. Read the intervals above, not the point
+  estimates: at ~50 per language only a ~20 point gap is detectable.
+
+  claude-sonnet-5         10.6 pts   no detectable gap
+  claude-opus-5           13.9 pts   no detectable gap
+  claude-haiku-4-5        10.7 pts   no detectable gap
+
+WHAT IS STILL CONFOUNDED — intent mix per language (human labels)
+  urdu_script      feature_request_or_ux_complaint 9, data_speed_complaint 6, package_not_activated 4
+  roman_urdu       feature_request_or_ux_complaint 9, login_failure 7, data_speed_complaint 4
+  code_switched    feature_request_or_ux_complaint 12, overcharging_dispute 6, service_outage_report 5
+  english          feature_request_or_ux_complaint 10, login_failure 6, data_speed_complaint 5
+
+  Length was matched by design. Subject matter was not: if one language
+  concentrates in intents that are intrinsically harder, that shows up as a
+  script effect and is not one. Read the mix above before concluding.
