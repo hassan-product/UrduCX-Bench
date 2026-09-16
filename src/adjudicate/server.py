@@ -161,7 +161,12 @@ class Session:
 
         wrong, controls = joint_error(pairs)
         if controls:
-            report["joint"] = {"wrong": wrong, "total": controls, **_band(wrong, controls)}
+            report["joint"] = {
+                "hits": wrong,
+                "wrong": wrong,
+                "total": controls,
+                **_band(wrong, controls),
+            }
 
         if len(models) > 1:
             both = [
